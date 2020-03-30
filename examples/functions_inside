@@ -1,0 +1,11 @@
+int main () {
+  int fun(int y) {
+      void g() {
+          return;
+      }
+      g();
+      return y + 5;
+  }
+
+  return fun(10);
+}

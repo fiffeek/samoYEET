@@ -1,0 +1,11 @@
+int main () {
+  void fun(int& y) {
+      y = y + 1;
+      return;
+  }
+
+  int t = 10;
+  fun(t);
+  yeet(t);
+  return 1;
+}
