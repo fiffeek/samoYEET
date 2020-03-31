@@ -17,32 +17,32 @@ import Samoyeet.ErrM
   '!=' { PT _ (TS _ 2) }
   '%' { PT _ (TS _ 3) }
   '&' { PT _ (TS _ 4) }
-  '&&' { PT _ (TS _ 5) }
-  '(' { PT _ (TS _ 6) }
-  ')' { PT _ (TS _ 7) }
-  '*' { PT _ (TS _ 8) }
-  '+' { PT _ (TS _ 9) }
-  '++' { PT _ (TS _ 10) }
-  ',' { PT _ (TS _ 11) }
-  '-' { PT _ (TS _ 12) }
-  '--' { PT _ (TS _ 13) }
-  '.' { PT _ (TS _ 14) }
-  '.at(' { PT _ (TS _ 15) }
-  '.length()' { PT _ (TS _ 16) }
-  '/' { PT _ (TS _ 17) }
-  ':' { PT _ (TS _ 18) }
-  ';' { PT _ (TS _ 19) }
-  '<' { PT _ (TS _ 20) }
-  '<=' { PT _ (TS _ 21) }
-  '=' { PT _ (TS _ 22) }
-  '==' { PT _ (TS _ 23) }
-  '>' { PT _ (TS _ 24) }
-  '>=' { PT _ (TS _ 25) }
-  'Fun' { PT _ (TS _ 26) }
-  'List' { PT _ (TS _ 27) }
+  '(' { PT _ (TS _ 5) }
+  ')' { PT _ (TS _ 6) }
+  '*' { PT _ (TS _ 7) }
+  '+' { PT _ (TS _ 8) }
+  '++' { PT _ (TS _ 9) }
+  ',' { PT _ (TS _ 10) }
+  '-' { PT _ (TS _ 11) }
+  '--' { PT _ (TS _ 12) }
+  '.' { PT _ (TS _ 13) }
+  '.at(' { PT _ (TS _ 14) }
+  '.length()' { PT _ (TS _ 15) }
+  '/' { PT _ (TS _ 16) }
+  ':' { PT _ (TS _ 17) }
+  ';' { PT _ (TS _ 18) }
+  '<' { PT _ (TS _ 19) }
+  '<=' { PT _ (TS _ 20) }
+  '=' { PT _ (TS _ 21) }
+  '==' { PT _ (TS _ 22) }
+  '>' { PT _ (TS _ 23) }
+  '>=' { PT _ (TS _ 24) }
+  'Fun' { PT _ (TS _ 25) }
+  'List' { PT _ (TS _ 26) }
+  'and' { PT _ (TS _ 27) }
   'boolean' { PT _ (TS _ 28) }
-  'break' { PT _ (TS _ 29) }
-  'continue' { PT _ (TS _ 30) }
+  'break;' { PT _ (TS _ 29) }
+  'continue;' { PT _ (TS _ 30) }
   'do' { PT _ (TS _ 31) }
   'else' { PT _ (TS _ 32) }
   'endif' { PT _ (TS _ 33) }
@@ -51,16 +51,16 @@ import Samoyeet.ErrM
   'from' { PT _ (TS _ 36) }
   'if' { PT _ (TS _ 37) }
   'int' { PT _ (TS _ 38) }
-  'push' { PT _ (TS _ 39) }
-  'return' { PT _ (TS _ 40) }
-  'string' { PT _ (TS _ 41) }
-  'to' { PT _ (TS _ 42) }
-  'true' { PT _ (TS _ 43) }
-  'void' { PT _ (TS _ 44) }
-  'while' { PT _ (TS _ 45) }
-  'yeet(' { PT _ (TS _ 46) }
-  '{' { PT _ (TS _ 47) }
-  '||' { PT _ (TS _ 48) }
+  'or' { PT _ (TS _ 39) }
+  'push' { PT _ (TS _ 40) }
+  'return' { PT _ (TS _ 41) }
+  'string' { PT _ (TS _ 42) }
+  'to' { PT _ (TS _ 43) }
+  'true' { PT _ (TS _ 44) }
+  'void' { PT _ (TS _ 45) }
+  'while' { PT _ (TS _ 46) }
+  'yeet' { PT _ (TS _ 47) }
+  '{' { PT _ (TS _ 48) }
   '}' { PT _ (TS _ 49) }
 
   L_ident {PT _ (TV $$)}
@@ -173,10 +173,10 @@ Stmt :: {
 | 'while' '(' Expr ')' Stmt {
   Samoyeet.Abs.While $3 $5 
 }
-| 'break' {
+| 'break;' {
   Samoyeet.Abs.SBreak 
 }
-| 'continue' {
+| 'continue;' {
   Samoyeet.Abs.SContinue 
 }
 | Expr ';' {
@@ -185,7 +185,7 @@ Stmt :: {
 | 'for' Ident 'from' Expr 'to' Expr 'do' Stmt {
   Samoyeet.Abs.For $2 $4 $6 $8 
 }
-| 'yeet(' Expr ')' {
+| 'yeet' Expr ';' {
   Samoyeet.Abs.Print $2 
 }
 | SType Ident '(' ListArg ')' Block {
@@ -347,7 +347,7 @@ Expr2 :: {
 Expr1 :: {
   Expr 
 }
-: Expr2 '&&' Expr1 {
+: Expr2 'and' Expr1 {
   Samoyeet.Abs.EAnd $1 $3 
 }
 | Expr2 {
@@ -357,7 +357,7 @@ Expr1 :: {
 Expr :: {
   Expr 
 }
-: Expr1 '||' Expr {
+: Expr1 'or' Expr {
   Samoyeet.Abs.EOr $1 $3 
 }
 | ListMaybeRefType ':' SType Block {

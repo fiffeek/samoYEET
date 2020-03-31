@@ -32,21 +32,21 @@ except ``"`` unless preceded by ``\``.
 The set of reserved words is the set of terminals appearing in the grammar. Those reserved words that consist of non-letter characters are called symbols, and they are treated in a different way from those that are similar to identifiers. The lexer follows rules familiar from languages like Haskell, C, and Java, including longest match and spacing conventions.
 
 The reserved words used in samoyeet are the following:
-  | ``Fun`` | ``List`` | ``boolean`` | ``break``
-  | ``continue`` | ``do`` | ``else`` | ``endif``
-  | ``false`` | ``for`` | ``from`` | ``if``
-  | ``int`` | ``push`` | ``return`` | ``string``
+  | ``Fun`` | ``List`` | ``and`` | ``boolean``
+  | ``do`` | ``else`` | ``endif`` | ``false``
+  | ``for`` | ``from`` | ``if`` | ``int``
+  | ``or`` | ``push`` | ``return`` | ``string``
   | ``to`` | ``true`` | ``void`` | ``while``
+  | ``yeet`` |  |  | 
 
 The symbols used in samoyeet are the following:
   | & | , | { | }
   | ; | = | ++ | --
-  | ( | ) | yeet( | <
-  | > | . | .length() | .at(
-  | - | ! | && | ||
-  | : | + | * | /
-  | % | <= | >= | ==
-  | != |  |  | 
+  | ( | ) | break; | continue;
+  | < | > | . | .length()
+  | .at( | - | ! | :
+  | + | * | / | %
+  | <= | >= | == | !=
 
 ===Comments===
 Single-line comments begin with #, //.Multiple-line comments are  enclosed with /* and */.
@@ -77,11 +77,11 @@ All other symbols are terminals.
   |  |  **|**  | ``if`` ``(`` //Expr// ``)`` //Stmt// 
   |  |  **|**  | ``if`` ``(`` //Expr// ``)`` //Stmt// ``else`` //Stmt// ``endif`` 
   |  |  **|**  | ``while`` ``(`` //Expr// ``)`` //Stmt// 
-  |  |  **|**  | ``break`` 
-  |  |  **|**  | ``continue`` 
+  |  |  **|**  | ``break;`` 
+  |  |  **|**  | ``continue;`` 
   |  |  **|**  | //Expr// ``;`` 
   |  |  **|**  | ``for`` //Ident// ``from`` //Expr// ``to`` //Expr// ``do`` //Stmt// 
-  |  |  **|**  | ``yeet(`` //Expr// ``)`` 
+  |  |  **|**  | ``yeet`` //Expr// ``;`` 
   |  |  **|**  | //SType// //Ident// ``(`` //[Arg]// ``)`` //Block// 
   |  |  **|**  | //Ident// ``.`` ``push`` ``(`` //Expr// ``)`` 
   | //Item// | -> | //Ident// 
@@ -119,9 +119,9 @@ All other symbols are terminals.
   |  |  **|**  | //Expr4// 
   | //Expr2// | -> | //Expr2// //RelOp// //Expr3// 
   |  |  **|**  | //Expr3// 
-  | //Expr1// | -> | //Expr2// ``&&`` //Expr1// 
+  | //Expr1// | -> | //Expr2// ``and`` //Expr1// 
   |  |  **|**  | //Expr2// 
-  | //Expr// | -> | //Expr1// ``||`` //Expr// 
+  | //Expr// | -> | //Expr1// ``or`` //Expr// 
   |  |  **|**  | //[MaybeRefType]// ``:`` //SType// //Block// 
   |  |  **|**  | //Expr1// 
   | //[Expr]// | -> | **eps**

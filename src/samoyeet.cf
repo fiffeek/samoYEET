@@ -2,7 +2,7 @@
 
 entrypoints Program ;
 
-Program.   Program ::= [Stmt] ;
+Program.   Program ::= [Stmt];
 
 Arg. 	   Arg ::= SType Ident;
 
@@ -44,15 +44,15 @@ CondElse.  Stmt ::= "if" "(" Expr ")" Stmt "else" Stmt "endif" ;
 
 While.     Stmt ::= "while" "(" Expr ")" Stmt ;
 
-SBreak.    Stmt ::= "break" ;
+SBreak.    Stmt ::= "break;" ;
 
-SContinue. Stmt ::= "continue" ;
+SContinue. Stmt ::= "continue;" ;
 
 SExp.      Stmt ::= Expr  ";" ;
 
 For.       Stmt ::= "for" Ident "from" Expr "to" Expr "do" Stmt ;
 
-Print.     Stmt ::= "yeet(" Expr ")" ;
+Print.     Stmt ::= "yeet" Expr ";" ;
 
 SFnDef.	   Stmt ::= SType Ident "(" [Arg] ")" Block ;
 
@@ -112,9 +112,9 @@ EAdd.      Expr3 ::= Expr3 AddOp Expr4 ;
 
 ERel.      Expr2 ::= Expr2 RelOp Expr3 ;
 
-EAnd.      Expr1 ::= Expr2 "&&" Expr1 ;
+EAnd.      Expr1 ::= Expr2 "and" Expr1 ;
 
-EOr.       Expr ::= Expr1 "||" Expr ;
+EOr.       Expr ::= Expr1 "or" Expr ;
 
 ELambda.   Expr  ::= [MaybeRefType] ":" SType Block ;
 

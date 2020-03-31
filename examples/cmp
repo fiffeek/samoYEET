@@ -1,0 +1,9 @@
+yeet(2 == 5);
+yeet(2 > 5);
+yeet("str" == "str2");
+yeet(true > true);
+yeet(true > false);
+yeet(true == true);
+yeet(true and false);
+yeet(false and false);
+return 5;

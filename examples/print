@@ -1,0 +1,5 @@
+yeet(5);
+yeet("str");
+yeet(2 + 8);
+yeet(2 - 8);
+yeet("one" + "dog");

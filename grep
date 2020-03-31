@@ -1,0 +1,7 @@
+examples/only_return
+
+Parse              Failed...
+
+Tokens:
+[PT (Pn 0 1 1) (TS "return" 41),PT (Pn 7 1 8) (TI "5"),PT (Pn 8 1 9) (TS ";" 18),PT (Pn 10 2 1) (TS "return" 41),PT (Pn 17 2 8) (TS "(" 5),PT (Pn 18 2 9) (TI "2"),PT (Pn 20 2 11) (TS "/" 16),PT (Pn 22 2 13) (TI "0"),PT (Pn 23 2 14) (TS ")" 6),PT (Pn 24 2 15) (TS ";" 18),PT (Pn 26 2 17) (TV "dadsa")]
+syntax error at end of file
