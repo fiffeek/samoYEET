@@ -1,0 +1,15 @@
+int x = 15;
+
+if (x == 15) {
+    int x = 17;
+    x++;
+    yeet("inside");
+    yeet(x);
+    int y;
+}
+
+yeet("outside");
+yeet(x);
+
+yeet(y);
+

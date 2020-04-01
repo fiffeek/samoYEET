@@ -25,7 +25,8 @@ type PEnv = M.Map Ident FunctionDefinition
 
 data Env = Env {
   vEnv :: VEnv,
-  pEnv :: PEnv
+  pEnv :: PEnv,
+  vtype :: VType
 } deriving Show
 
 data FunctionDefinition = FunctionDefinition {
@@ -41,7 +42,7 @@ type InterpretMonad a
 
 
 initialEnvironment :: Env
-initialEnvironment = Env { vEnv = M.empty, pEnv = M.empty }
+initialEnvironment = Env { vEnv = M.empty, pEnv = M.empty, vtype = VNone }
 
 initialState :: Store
 initialState = Store { storage = M.empty, freeAddresses = [1 ..] }
@@ -57,6 +58,20 @@ putValInStore :: VType -> (MemAdr, [MemAdr]) -> Store -> Store
 putValInStore val (freeAddr, rest) s =
   Store { storage = M.insert freeAddr val (storage s), freeAddresses = rest }
 
+putValInAddr :: VType -> MemAdr -> Store -> Store
+putValInAddr val addr s = Store { storage       = M.insert addr val (storage s)
+                                , freeAddresses = freeAddresses s
+                                }
+
 putValInEnv :: Ident -> MemAdr -> Env -> Env
-putValInEnv name addr env =
-  Env { vEnv = M.insert name addr (vEnv env), pEnv = pEnv env }
+putValInEnv name addr env = Env { vEnv  = M.insert name addr (vEnv env)
+                                , pEnv  = pEnv env
+                                , vtype = vtype env
+                                }
+
+changeRetType :: VType -> Env -> Env
+changeRetType v env = Env { vEnv = vEnv env, pEnv = pEnv env, vtype = v }
+
+flushVariables :: Env -> Env -> Env
+flushVariables env1 env2 =
+  Env { vEnv = vEnv env1, pEnv = pEnv env1, vtype = vtype env2 }

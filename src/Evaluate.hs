@@ -40,24 +40,22 @@ evaluateExprM (EVar var        ) = do
   state <- getStorage CMS.get
   getOrError (M.lookup loc state) VariableMissingInStore
 
-execStatementM :: Stmt -> InterpretMonad (Env, VType)
+execStatementM :: Stmt -> InterpretMonad Env
 execStatementM (Ret expr) = do
-  env <- ask
-  val <- evaluateExprM expr
-  return (env, val)
+  liftM2 changeRetType (evaluateExprM expr) ask
 execStatementM (VRet) = do
   env <- ask
-  return (env, VNone)
+  return $ changeRetType VVoid env
 execStatementM (BStmt (Block stmts)) = do
-  env      <- ask
-  (_, val) <- execStatementsM stmts
-  return (env, val)
-execStatementM (Empty) = do
+  liftM2 flushVariables ask (execStatementsM stmts)
+execStatementM (Empty ) = ask
+execStatementM (SBreak) = do
   env <- ask
-  return (env, VNone)
-execStatementM (Decl t []) = do
+  return $ changeRetType VBreak env
+execStatementM (SContinue) = do
   env <- ask
-  return (env, VNone)
+  return $ changeRetType VContinue env
+execStatementM (Decl t []                  ) = ask
 execStatementM (Decl t ((NoInit name) : xs)) = do
   state <- CMS.get
   let splitState@(loc, _) = getFreeAddr state
@@ -69,24 +67,46 @@ execStatementM (Decl t ((Init name expr) : xs)) = do
   CMS.modify (putValInStore val splitState)
   local (putValInEnv name loc) $ execStatementM (Decl t xs)
 execStatementM (Print expr) = do
-  env <- ask
   val <- evaluateExprM expr
   liftIO . putStrLn . show $ val
-  return (env, VNone)
+  ask
+execStatementM (Ass name expr) = do
+  val <- evaluateExprM expr
+  env <- asks vEnv
+  loc <- getOrError (M.lookup name env) VariableNotInitialized
+  CMS.modify (putValInAddr val loc)
+  ask
+execStatementM (Incr name                ) = addToVar name 1
+execStatementM (Decr name                ) = addToVar name (-1)
+execStatementM (Cond expr stmt) = execStatementM (CondElse expr stmt Empty)
+execStatementM (CondElse expr stmt1 stmt2) = do
+  val <- evaluateExprM expr
+  liftM2
+    flushVariables
+    ask
+    (if val == (VBool True) then execStatementM stmt1 else execStatementM stmt2)
 
-execStatementsM :: [Stmt] -> InterpretMonad (Env, VType)
+
+addToVar :: Ident -> Integer -> InterpretMonad Env
+addToVar name toAdd = do
+  env   <- asks vEnv
+  loc   <- getOrError (M.lookup name env) VariableNotInitialized
+  state <- CMS.get
+  val   <- getOrError (M.lookup loc (storage state)) VariableNotInitialized
+  let inc = myPlus val (VInt toAdd)
+  CMS.modify (putValInAddr inc loc)
+  ask
+
+execStatementsM :: [Stmt] -> InterpretMonad Env
+execStatementsM []       = ask
 execStatementsM (x : []) = execStatementM x
 execStatementsM (x : xs) = do
-  (env, val) <- execStatementM x
-  statementValueDispatcher val env (execStatementsM xs)
+  env <- execStatementM x
+  statementValueDispatcher env (execStatementsM xs)
  where
-  statementValueDispatcher
-    :: VType
-    -> Env
-    -> InterpretMonad (Env, VType)
-    -> InterpretMonad (Env, VType)
-  statementValueDispatcher (VNone) env stmts = local (const env) stmts
-  statementValueDispatcher other   env _     = return (env, other)
+  statementValueDispatcher :: Env -> InterpretMonad Env -> InterpretMonad Env
+  statementValueDispatcher env@(Env _ _ VNone) stmts = local (const env) stmts
+  statementValueDispatcher env                 _     = return env
 
 execInterpretMonad :: [Stmt] -> IO ()
 execInterpretMonad =
@@ -100,12 +120,12 @@ errorsHandler error = putStrLn . addPrefix . go $ error
   go VariableMissingInStore = "Variable was not initialized"
   go DivisionByZero         = "Division by zero"
 
-runInterpretMonad :: Env -> Store -> InterpretMonad (Env, VType) -> IO ()
+runInterpretMonad :: Env -> Store -> InterpretMonad Env -> IO ()
 runInterpretMonad env state m = do
   ans <- e
   case ans of
-    Left  err        -> errorsHandler $ err
-    Right (env, val) -> do
+    Left  err               -> errorsHandler $ err
+    Right env@(Env _ _ val) -> do
       putStrLn $ show env
       putStrLn $ returnProgram val
       pure ()

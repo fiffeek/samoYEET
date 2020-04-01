@@ -8,11 +8,11 @@ import           RuntimeError
 import           Control.Monad.Except
 
 
-data VType = VInt Integer | VStr String | VBool Bool | VVoid | VNone
+data VType = VInt Integer | VStr String | VBool Bool | VVoid | VNone | VBreak | VContinue
 
 instance Show VType where
   show VVoid       = "void"
-  show VNone       = undefined
+  show VNone       = "none"
   show (VInt  val) = show val
   show (VStr  val) = show val
   show (VBool val) = show val
@@ -47,16 +47,16 @@ myRel op left right = do
   matcher EQU l r = l == r
   matcher NE  l r = l /= r
 
+myPlus (VInt left) (VInt right) = VInt $ left + right
+myPlus (VStr left) (VStr right) = VStr $ left ++ right
+myMinus (VInt left) (VInt right) = VInt $ left - right
+
 myAdd :: (MonadError RuntimeError m) => AddOp -> m VType -> m VType -> m VType
 myAdd op left right = do
   l <- left
   r <- right
-  (matcher op) l r
+  pure $ (matcher op) l r
  where
-  myPlus (VInt left) (VInt right) = pure . VInt $ left + right
-  myPlus (VStr left) (VStr right) = pure . VStr $ left ++ right
-  myMinus (VInt left) (VInt right) = pure . VInt $ left - right
-
   matcher Plus  = myPlus
   matcher Minus = myMinus
 
@@ -67,9 +67,14 @@ myMul op left right = do
   (matcher op) l r
  where
   myTimes (VInt left) (VInt right) = pure . VInt $ left * right
+  myTimes _           _            = throwError IncompatibleTypes
+
   myDiv (VInt left) (VInt 0    ) = throwError DivisionByZero
   myDiv (VInt left) (VInt right) = pure . VInt $ left `div` right
+  myDiv _           _            = throwError IncompatibleTypes
+
   myMod (VInt left) (VInt right) = pure . VInt $ left `mod` right
+  myMod _           _            = throwError IncompatibleTypes
 
   matcher Times = myTimes
   matcher Div   = myDiv

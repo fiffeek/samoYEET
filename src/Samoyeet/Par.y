@@ -45,23 +45,22 @@ import Samoyeet.ErrM
   'continue;' { PT _ (TS _ 30) }
   'do' { PT _ (TS _ 31) }
   'else' { PT _ (TS _ 32) }
-  'endif' { PT _ (TS _ 33) }
-  'false' { PT _ (TS _ 34) }
-  'for' { PT _ (TS _ 35) }
-  'from' { PT _ (TS _ 36) }
-  'if' { PT _ (TS _ 37) }
-  'int' { PT _ (TS _ 38) }
-  'or' { PT _ (TS _ 39) }
-  'push' { PT _ (TS _ 40) }
-  'return' { PT _ (TS _ 41) }
-  'string' { PT _ (TS _ 42) }
-  'to' { PT _ (TS _ 43) }
-  'true' { PT _ (TS _ 44) }
-  'void' { PT _ (TS _ 45) }
-  'while' { PT _ (TS _ 46) }
-  'yeet' { PT _ (TS _ 47) }
-  '{' { PT _ (TS _ 48) }
-  '}' { PT _ (TS _ 49) }
+  'false' { PT _ (TS _ 33) }
+  'for' { PT _ (TS _ 34) }
+  'from' { PT _ (TS _ 35) }
+  'if' { PT _ (TS _ 36) }
+  'int' { PT _ (TS _ 37) }
+  'or' { PT _ (TS _ 38) }
+  'push' { PT _ (TS _ 39) }
+  'return' { PT _ (TS _ 40) }
+  'string' { PT _ (TS _ 41) }
+  'to' { PT _ (TS _ 42) }
+  'true' { PT _ (TS _ 43) }
+  'void' { PT _ (TS _ 44) }
+  'while' { PT _ (TS _ 45) }
+  'yeet' { PT _ (TS _ 46) }
+  '{' { PT _ (TS _ 47) }
+  '}' { PT _ (TS _ 48) }
 
   L_ident {PT _ (TV $$)}
   L_integ {PT _ (TI $$)}
@@ -167,7 +166,7 @@ Stmt :: {
 | 'if' '(' Expr ')' Stmt {
   Samoyeet.Abs.Cond $3 $5 
 }
-| 'if' '(' Expr ')' Stmt 'else' Stmt 'endif' {
+| 'if' '(' Expr ')' Stmt 'else' Stmt {
   Samoyeet.Abs.CondElse $3 $5 $7 
 }
 | 'while' '(' Expr ')' Stmt {

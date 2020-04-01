@@ -2,7 +2,8 @@ int x = 5;
 yeet x;
 
 {
-    int x;
+    int x = 15;
+    x = 5000;
     yeet x;
 }
 
