@@ -16,6 +16,7 @@ instance Show VType where
   show (VInt  val) = show val
   show (VStr  val) = show val
   show (VBool val) = show val
+  show VBreak      = "break"
 
 instance Eq VType where
   (VInt  left) == (VInt  right) = left == right

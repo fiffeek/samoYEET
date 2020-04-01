@@ -75,3 +75,17 @@ changeRetType v env = Env { vEnv = vEnv env, pEnv = pEnv env, vtype = v }
 flushVariables :: Env -> Env -> Env
 flushVariables env1 env2 =
   Env { vEnv = vEnv env1, pEnv = pEnv env1, vtype = vtype env2 }
+
+putFunInEnv :: SType -> Ident -> [Arg] -> Block -> Env -> Env
+putFunInEnv t n args b env = Env { vEnv  = vEnv env
+                                 , pEnv  = M.insert n makeFunc (pEnv env)
+                                 , vtype = vtype env
+                                 }
+ where
+  makeFunc = FunctionDefinition { pType = t
+                                , ident = n
+                                , pArgs = args
+                                , body  = b
+                                , env   = env
+                                }
+

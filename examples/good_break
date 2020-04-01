@@ -1,0 +1,10 @@
+int x = 15;
+while (x < 20) {
+    if (x == 16) {
+        break;
+    }
+    yeet("inside");
+    yeet(x);
+    x ++ ;
+}
+yeet(x);

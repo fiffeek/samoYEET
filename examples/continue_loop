@@ -1,0 +1,23 @@
+int x = 15;
+while (x < 20) {
+    if (x == 16) {
+        x = 18;
+        continue;
+    }
+    yeet("inside");
+    yeet(x);
+    x ++ ;
+}
+yeet(x);
+x = 15;
+yeet("test2");
+while (x < 20) {
+    yeet("once");
+    if (x == 16) {
+        x = 28;
+        continue;
+    }
+    yeet("inside");
+    yeet(x);
+    x ++ ;
+}

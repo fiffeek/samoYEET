@@ -56,6 +56,18 @@ execStatementM (CondElse expr stmt1 stmt2) = do
     flushVariables
     ask
     (if val == (VBool True) then execStatementM stmt1 else execStatementM stmt2)
+execStatementM loop@(While expr stmt) = do
+  val <- evaluateExprM expr
+  if val == (VBool True)
+    then do
+      env <- execStatementM stmt
+      matchReturnType env (execStatementM loop)
+    else ask
+ where
+  matchReturnType :: Env -> InterpretMonad Env -> InterpretMonad Env
+  matchReturnType env@(Env _ _ VBreak) _ = local (changeRetType VNone) ask
+  matchReturnType env@(Env _ _ VNone) stmt = local (const env) stmt
+  matchReturnType (Env _ _ VContinue) stmt = local (changeRetType VNone) stmt
 
 
 addToVar :: Ident -> Integer -> InterpretMonad Env
