@@ -3,3 +3,5 @@
 ChangeLog.md
 LICENSE
 README.md
+*.hi
+*.o
