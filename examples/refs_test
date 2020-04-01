@@ -1,0 +1,12 @@
+void fun(int& x) {
+    int y;
+    y = 12;
+    yeet(y);
+    yeet(x);
+    x = 15;
+    return;
+}
+
+int t = 10;
+fun(t);
+yeet(t);

@@ -6,11 +6,7 @@ import           Control.Monad.Reader
 import qualified Control.Monad.State           as CMS
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Except
-import           Samoyeet.Abs                   ( Arg
-                                                , Block
-                                                , SType
-                                                , Ident
-                                                )
+import           Samoyeet.Abs
 import           ValueTypes
 import           Utils
 import           RuntimeError
@@ -40,7 +36,6 @@ data FunctionDefinition = FunctionDefinition {
 type InterpretMonad a
   = ReaderT Env (CMS.StateT Store (ExceptT RuntimeError IO)) a
 
-
 initialEnvironment :: Env
 initialEnvironment = Env { vEnv = M.empty, pEnv = M.empty, vtype = VNone }
 
@@ -54,6 +49,14 @@ getFreeAddr :: Store -> (MemAdr, [MemAdr])
 getFreeAddr store = (head freeAddrs, tail freeAddrs)
   where freeAddrs = freeAddresses store
 
+putVal :: Ident -> VType -> InterpretMonad Env
+putVal name val = do
+  env   <- ask
+  state <- CMS.get
+  let splitState@(loc, _) = getFreeAddr state
+  CMS.modify (putValInStore val splitState)
+  return $ putValInEnv name loc env
+
 putValInStore :: VType -> (MemAdr, [MemAdr]) -> Store -> Store
 putValInStore val (freeAddr, rest) s =
   Store { storage = M.insert freeAddr val (storage s), freeAddresses = rest }
@@ -62,6 +65,16 @@ putValInAddr :: VType -> MemAdr -> Store -> Store
 putValInAddr val addr s = Store { storage       = M.insert addr val (storage s)
                                 , freeAddresses = freeAddresses s
                                 }
+updateFreeAddrs :: [MemAdr] -> Store -> Store
+updateFreeAddrs rest s = Store { storage = storage s, freeAddresses = rest }
+
+putValNoInit :: Ident -> InterpretMonad Env
+putValNoInit name = do
+  env   <- ask
+  state <- CMS.get
+  let (loc, rest) = getFreeAddr state
+  CMS.modify (updateFreeAddrs rest)
+  return $ putValInEnv name loc env
 
 putValInEnv :: Ident -> MemAdr -> Env -> Env
 putValInEnv name addr env = Env { vEnv  = M.insert name addr (vEnv env)

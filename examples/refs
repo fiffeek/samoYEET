@@ -1,11 +1,22 @@
-int main () {
-  void fun(int& y) {
-      y = y + 1;
-      return;
+void fun(int y) {
+  y = y + 1;
+  {
+    y = 50;
   }
-
-  int t = 10;
-  fun(t);
-  yeet(t);
-  return 1;
+  return;
 }
+
+void fun2(int& y) {
+  y = y + 1;
+  {
+    y = 50;
+  }
+  return;
+}
+
+int t = 10;
+fun(t);
+yeet(t);
+fun2(t);
+yeet(t);
+return 1;

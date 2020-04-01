@@ -9,3 +9,5 @@ int main () {
 
   return fun(10);
 }
+
+return main();

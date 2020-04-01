@@ -23,7 +23,8 @@ errorsHandler error = putStrLn . addPrefix . go $ error
   go VariableMissingInStore = "Variable was not initialized"
   go DivisionByZero         = "Division by zero"
   go WrongNumberOfArguments = "Wrong number of arguments passed to function"
-  go _                      = "Som error"
+  go IncompatibleTypes      = "Incompatible types"
+  go _                      = "Unknown error"
 
 runInterpretMonad :: Env -> Store -> InterpretMonad Env -> IO ()
 runInterpretMonad env state m = do

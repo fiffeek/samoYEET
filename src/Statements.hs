@@ -41,40 +41,31 @@ evaluateExprM (EVar var) = do
   state <- getStorage CMS.get
   getOrError (M.lookup loc state) VariableMissingInStore
 evaluateExprM (EApp name exprs) = do
-  env  <- asks pEnv
-  vEnv <- asks vEnv
+  pEnv    <- asks pEnv
+  currEnv <- ask
   (FunctionDefinition retType name args b@(Block stmts) envF) <- getOrError
-    (M.lookup name env)
+    (M.lookup name pEnv)
     FunctionNotInitialized
   throwOnPredicate (length args /= length exprs) WrongNumberOfArguments
-  let (byValue, byRef) = splitOnArgType $ zip args exprs
-  let mappedByValue    = map argExprToDecl byValue
-  envR <- local (\_ -> envF) $ execStatementsM mappedByValue
---   references <- getReferences vEnv byRef
---   let rr    = zip byRef references
---   let envRR = fewrH envR rr
-  envT <- local (\_ -> putFunInEnv retType name args b envR)
-    $ execStatementsM stmts
-  return (vtype envT)
+  let argExpr = args `zip` exprs
+  envAfterVDecl <- local (const envF) $ dispatcher argExpr currEnv
+  let envFunc = putFunInEnv retType name args b envAfterVDecl
+  envAfterFDecl <- local (const envFunc) $ execStatementsM stmts
+  return (vtype envAfterFDecl)
  where
-    --  tu trzeba dodac mapping name na stara lokalizacje zamiast ten same name
-  splitOnArgType [] = ([], [])
-  splitOnArgType (a@((Arg _ _), _) : xs) =
-    let (args, refs) = splitOnArgType xs in (a : args, refs)
-  splitOnArgType (((RefArg _ _), (EVar name)) : xs) =
-    let (args, refs) = splitOnArgType xs in (args, name : refs)
-  argExprToDecl ((Arg t name), exp) = Decl t [Init name exp]
-  getReferences env refs = sequence
-    $ fmap (\k -> getOrError (M.lookup k env) VariableNotReferencable) refs
-  fromEnvWithRefs
-    :: M.Map Ident MemAdr -> [(Ident, MemAdr)] -> M.Map Ident MemAdr
-  fromEnvWithRefs env refs =
-    foldl (\acc (name, memory) -> M.insert name memory acc) env refs
-  fewrH env refs = Env { pEnv  = pEnv env
-                       , vEnv  = fromEnvWithRefs (vEnv env) refs
-                       , vtype = vtype env
-                       }
-
+  dispatcher :: [(Arg, Expr)] -> Env -> InterpretMonad Env
+  dispatcher []                          _       = ask
+  dispatcher (((Arg _ name), expr) : xs) evalEnv = do
+    val <- local (const evalEnv) $ evaluateExprM expr
+    env <- putVal name val
+    vTypeExprDispatcher val
+                        (local (const env) $ dispatcher xs evalEnv)
+                        (throwError IncompatibleTypes)
+  dispatcher (((RefArg _ name), (EVar calledWith)) : xs) evalEnv = do
+    loc <- getOrError (M.lookup calledWith $ vEnv evalEnv)
+                      VariableNotReferencable
+    local (putValInEnv name loc) $ dispatcher xs evalEnv
+  dispatcher _ _ = throwError VariableNotReferencable
 
 execStatementM :: Stmt -> InterpretMonad Env
 execStatementM (Ret expr) = do
@@ -93,15 +84,12 @@ execStatementM (SContinue) = do
   return $ changeRetType VContinue env
 execStatementM (Decl _ []                  ) = ask
 execStatementM (Decl t ((NoInit name) : xs)) = do
-  state <- CMS.get
-  let splitState@(loc, _) = getFreeAddr state
-  local (putValInEnv name loc) $ execStatementM (Decl t xs)
+  env <- putValNoInit name
+  local (const env) $ execStatementM (Decl t xs)
 execStatementM (Decl t ((Init name expr) : xs)) = do
-  val   <- evaluateExprM expr
-  state <- CMS.get
-  let splitState@(loc, _) = getFreeAddr state
-  CMS.modify (putValInStore val splitState)
-  local (putValInEnv name loc) $ execStatementM (Decl t xs)
+  val <- evaluateExprM expr
+  env <- putVal name val
+  local (const env) $ execStatementM (Decl t xs)
 execStatementM (Print expr) = do
   val <- evaluateExprM expr
   liftIO . putStrLn . show $ val
@@ -157,7 +145,14 @@ execStatementsM (x : []) = execStatementM x
 execStatementsM (x : xs) = do
   env <- execStatementM x
   statementValueDispatcher env (execStatementsM xs)
- where
-  statementValueDispatcher :: Env -> InterpretMonad Env -> InterpretMonad Env
-  statementValueDispatcher env@(Env _ _ VNone) stmts = local (const env) stmts
-  statementValueDispatcher env                 _     = return env
+
+statementValueDispatcher :: Env -> InterpretMonad Env -> InterpretMonad Env
+statementValueDispatcher env@(Env _ _ VNone) stmts = local (const env) stmts
+statementValueDispatcher env                 _     = return env
+
+vTypeExprDispatcher
+  :: VType -> InterpretMonad Env -> InterpretMonad Env -> InterpretMonad Env
+vTypeExprDispatcher (VInt  _) m1 _  = m1
+vTypeExprDispatcher (VBool _) m1 _  = m1
+vTypeExprDispatcher (VStr  _) m1 _  = m1
+vTypeExprDispatcher _         _  m2 = m2

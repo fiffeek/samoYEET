@@ -1,0 +1,20 @@
+int fun() {
+    yeet("fun");
+    return 5;
+}
+
+int fun3() {
+    yeet("fun3");
+    break;
+    return 5;
+}
+
+
+void fun2(int z, int y) {
+    yeet("fun2");
+    yeet(z);
+    yeet(y);
+    return;
+}
+
+fun2(fun(), fun3());

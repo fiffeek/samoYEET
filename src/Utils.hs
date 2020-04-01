@@ -9,3 +9,9 @@ returnProgram ret =
     . (shows ret)
     . (showString "]\n")
     $ ""
+
+splitOnArgType [] = ([], [])
+splitOnArgType (a@((Arg _ _), _) : xs) =
+  let (args, refs) = splitOnArgType xs in (a : args, refs)
+splitOnArgType (((RefArg _ argName), (EVar calledWith)) : xs) =
+  let (args, refs) = splitOnArgType xs in (args, (argName, calledWith) : refs)
