@@ -7,4 +7,5 @@ data RuntimeError = UnknownError
   | DivisionByZero
   | IncompatibleTypes
   | FunctionNotInitialized
-  | WrongNumberOfArguments deriving Show
+  | WrongNumberOfArguments
+  | VariableNotReferencable deriving Show

@@ -1,0 +1,12 @@
+void func() {
+    yeet("func1");
+    func2();
+    return;
+}
+
+void func2() {
+    yeet("func2");
+    return;
+}
+
+func();

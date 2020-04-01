@@ -1,0 +1,9 @@
+void fun(int& byRef) {
+    byRef++;
+    yeet(byRef);
+    return;
+}
+
+int x = 15;
+fun(x);
+yeet(x);

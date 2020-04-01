@@ -41,17 +41,39 @@ evaluateExprM (EVar var) = do
   state <- getStorage CMS.get
   getOrError (M.lookup loc state) VariableMissingInStore
 evaluateExprM (EApp name exprs) = do
-  env <- asks pEnv
-  (FunctionDefinition retType name args (Block stmts) env) <- getOrError
+  env  <- asks pEnv
+  vEnv <- asks vEnv
+  (FunctionDefinition retType name args b@(Block stmts) envF) <- getOrError
     (M.lookup name env)
     FunctionNotInitialized
   throwOnPredicate (length args /= length exprs) WrongNumberOfArguments
-  let zipped  = zip args exprs
-  let mapped = map (\((Arg t name), exp) -> Decl t [Init name exp]) zipped
-  let app     = mapped ++ stmts
-  let blocked = BStmt . Block $ app
-  env <- execStatementM blocked
-  return (vtype env)
+  let (byValue, byRef) = splitOnArgType $ zip args exprs
+  let mappedByValue    = map argExprToDecl byValue
+  envR <- local (\_ -> envF) $ execStatementsM mappedByValue
+--   references <- getReferences vEnv byRef
+--   let rr    = zip byRef references
+--   let envRR = fewrH envR rr
+  envT <- local (\_ -> putFunInEnv retType name args b envR)
+    $ execStatementsM stmts
+  return (vtype envT)
+ where
+    --  tu trzeba dodac mapping name na stara lokalizacje zamiast ten same name
+  splitOnArgType [] = ([], [])
+  splitOnArgType (a@((Arg _ _), _) : xs) =
+    let (args, refs) = splitOnArgType xs in (a : args, refs)
+  splitOnArgType (((RefArg _ _), (EVar name)) : xs) =
+    let (args, refs) = splitOnArgType xs in (args, name : refs)
+  argExprToDecl ((Arg t name), exp) = Decl t [Init name exp]
+  getReferences env refs = sequence
+    $ fmap (\k -> getOrError (M.lookup k env) VariableNotReferencable) refs
+  fromEnvWithRefs
+    :: M.Map Ident MemAdr -> [(Ident, MemAdr)] -> M.Map Ident MemAdr
+  fromEnvWithRefs env refs =
+    foldl (\acc (name, memory) -> M.insert name memory acc) env refs
+  fewrH env refs = Env { pEnv  = pEnv env
+                       , vEnv  = fromEnvWithRefs (vEnv env) refs
+                       , vtype = vtype env
+                       }
 
 
 execStatementM :: Stmt -> InterpretMonad Env
