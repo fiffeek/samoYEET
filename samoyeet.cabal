@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 68f7d9facec0c1a39f4a5f4f9d6e101ad47feef509ddb1bf011cfa6b8a59688e
+-- hash: 27cafa54405615ef2bc6dd4beb87bc64f8a5565ad38d3708467cee1b81dbde13
 
 name:           samoyeet
 version:        0.1.0.0
@@ -29,7 +29,6 @@ library
   exposed-modules:
       Environments
       Evaluate
-      Expressions
       RuntimeError
       Samoyeet.Abs
       Samoyeet.ErrM

@@ -9,7 +9,50 @@ import           Utils
 import           ValueTypes
 import qualified Data.Map                      as M
 import           RuntimeError
-import           Expressions
+
+getOrError :: Maybe a -> RuntimeError -> InterpretMonad a
+getOrError maybeVal error = maybe (throwError error) return maybeVal
+
+throwOnPredicate predicate error =
+  if predicate then throwError error else return ()
+
+evaluateExprM :: Expr -> InterpretMonad VType
+evaluateExprM (ELitInt val ) = return (VInt val)
+evaluateExprM (ELitTrue    ) = return (VBool True)
+evaluateExprM (ELitFalse   ) = return (VBool False)
+evaluateExprM (EString val ) = return (VStr val)
+evaluateExprM (Neg     expr) = do
+  fmap myNeg (evaluateExprM expr)
+evaluateExprM (Not expr) = do
+  fmap myNot (evaluateExprM expr)
+evaluateExprM (EMul left op right) =
+  myMul op (evaluateExprM left) (evaluateExprM right)
+evaluateExprM (EAdd left op right) =
+  myAdd op (evaluateExprM left) (evaluateExprM right)
+evaluateExprM (ERel left op right) =
+  myRel op (evaluateExprM left) (evaluateExprM right)
+evaluateExprM (EAnd left right) =
+  liftM2 myAnd (evaluateExprM left) (evaluateExprM right)
+evaluateExprM (EOr left right) =
+  liftM2 myOr (evaluateExprM left) (evaluateExprM right)
+evaluateExprM (EVar var) = do
+  env   <- asks vEnv
+  loc   <- getOrError (M.lookup var env) VariableNotInitialized
+  state <- getStorage CMS.get
+  getOrError (M.lookup loc state) VariableMissingInStore
+evaluateExprM (EApp name exprs) = do
+  env <- asks pEnv
+  (FunctionDefinition retType name args (Block stmts) env) <- getOrError
+    (M.lookup name env)
+    FunctionNotInitialized
+  throwOnPredicate (length args /= length exprs) WrongNumberOfArguments
+  let zipped  = zip args exprs
+  let mapped = map (\((Arg t name), exp) -> Decl t [Init name exp]) zipped
+  let app     = mapped ++ stmts
+  let blocked = BStmt . Block $ app
+  env <- execStatementM blocked
+  return (vtype env)
+
 
 execStatementM :: Stmt -> InterpretMonad Env
 execStatementM (Ret expr) = do
@@ -26,7 +69,7 @@ execStatementM (SBreak) = do
 execStatementM (SContinue) = do
   env <- ask
   return $ changeRetType VContinue env
-execStatementM (Decl t []                  ) = ask
+execStatementM (Decl _ []                  ) = ask
 execStatementM (Decl t ((NoInit name) : xs)) = do
   state <- CMS.get
   let splitState@(loc, _) = getFreeAddr state
@@ -47,8 +90,11 @@ execStatementM (Ass name expr) = do
   loc <- getOrError (M.lookup name env) VariableNotInitialized
   CMS.modify (putValInAddr val loc)
   ask
-execStatementM (Incr name                ) = addToVar name 1
-execStatementM (Decr name                ) = addToVar name (-1)
+execStatementM (Incr name) = addToVar name 1
+execStatementM (Decr name) = addToVar name (-1)
+execStatementM (SExp expr) = do
+  evaluateExprM expr
+  ask
 execStatementM (Cond expr stmt) = execStatementM (CondElse expr stmt Empty)
 execStatementM (CondElse expr stmt1 stmt2) = do
   val <- evaluateExprM expr
@@ -68,6 +114,9 @@ execStatementM loop@(While expr stmt) = do
   matchReturnType env@(Env _ _ VBreak) _ = local (changeRetType VNone) ask
   matchReturnType env@(Env _ _ VNone) stmt = local (const env) stmt
   matchReturnType (Env _ _ VContinue) stmt = local (changeRetType VNone) stmt
+execStatementM (SFnDef retType name args block) = do
+  env <- ask
+  return (putFunInEnv retType name args block env)
 
 
 addToVar :: Ident -> Integer -> InterpretMonad Env

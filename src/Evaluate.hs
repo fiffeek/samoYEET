@@ -9,7 +9,6 @@ import           Utils
 import           ValueTypes
 import qualified Data.Map                      as M
 import           RuntimeError
-import           Expressions
 import           Statements
 
 execInterpretMonad :: [Stmt] -> IO ()
@@ -23,6 +22,8 @@ errorsHandler error = putStrLn . addPrefix . go $ error
   go VariableNotInitialized = "Variable was not initialized"
   go VariableMissingInStore = "Variable was not initialized"
   go DivisionByZero         = "Division by zero"
+  go WrongNumberOfArguments = "Wrong number of arguments passed to function"
+  go _                      = "Som error"
 
 runInterpretMonad :: Env -> Store -> InterpretMonad Env -> IO ()
 runInterpretMonad env state m = do
@@ -30,7 +31,7 @@ runInterpretMonad env state m = do
   case ans of
     Left  err               -> errorsHandler $ err
     Right env@(Env _ _ val) -> do
-      putStrLn $ show env
+      putStrLn $ show . vEnv $ env
       putStrLn $ returnProgram val
       pure ()
  where

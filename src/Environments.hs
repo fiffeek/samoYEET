@@ -82,10 +82,13 @@ putFunInEnv t n args b env = Env { vEnv  = vEnv env
                                  , vtype = vtype env
                                  }
  where
-  makeFunc = FunctionDefinition { pType = t
-                                , ident = n
-                                , pArgs = args
-                                , body  = b
-                                , env   = env
-                                }
-
+  makeFunc = FunctionDefinition
+    { pType = t
+    , ident = n
+    , pArgs = args
+    , body  = b
+    , env   = Env { vEnv  = vEnv env
+                  , pEnv  = M.insert n makeFunc (pEnv env)
+                  , vtype = vtype env
+                  }
+    }
