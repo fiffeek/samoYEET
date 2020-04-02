@@ -10,11 +10,15 @@ import           Control.Applicative
 data Env = Env {
     types :: M.Map Ident SType,
     status :: Maybe SType,
-    funRetType :: Maybe SType
+    funRetType :: Maybe SType,
+    loopsOnStack :: Int
     } deriving Show
 
 putType :: Ident -> SType -> Env -> Env
 putType ident t env = env { types = M.insert ident t (types env) }
+
+alternateFunRetType :: Maybe SType -> Env -> Env
+alternateFunRetType t e = e { funRetType = t <|> funRetType e }
 
 putFunRetType :: SType -> Env -> Env
 putFunRetType t1 e = e { funRetType = Just t1 }
@@ -28,18 +32,31 @@ overrideStatus s e = e { status = s }
 overrideJustStatus :: SType -> Env -> Env
 overrideJustStatus s e = overrideStatus (Just s) e
 
+addToLoops :: Int -> Env -> Env
+addToLoops v e = e { loopsOnStack = (loopsOnStack e) + v }
+
+incLoopsCtr :: Env -> Env
+incLoopsCtr = addToLoops 1
+
+decrLoopsCtr :: Env -> Env
+decrLoopsCtr = addToLoops (-1)
+
 data TypeError = NotAFunction
   | TypeMismatch SType [SType]
   | NotInitialized Ident
   | FunctionBodyDoesNotReturnValue
+  | OutsideOfLoop Stmt
   | WrongNumberOfArguments
   | UnknownError deriving Show
 
 type TypeCheckerMonad a = ReaderT Env (ExceptT TypeError IO) a
 
 initialEnvironment :: Env
-initialEnvironment =
-  Env { types = M.empty, status = Nothing, funRetType = Nothing }
+initialEnvironment = Env { types        = M.empty
+                         , status       = Nothing
+                         , funRetType   = Nothing
+                         , loopsOnStack = 0
+                         }
 
 execTypeCheckerMonad :: [Stmt] -> IO ()
 execTypeCheckerMonad = runTypeCheckerMonad initialEnvironment . typeCheckStmtsM
@@ -100,6 +117,10 @@ varPossibleTypes = [Int, Str, Bool]
 comparableTypes = varPossibleTypes
 functionReturnTypes = varPossibleTypes ++ [Void]
 possiblePrintTypes = varPossibleTypes
+
+checkLoopsOnStack :: Stmt -> Env -> TypeCheckerMonad ()
+checkLoopsOnStack s e = do
+  unless (loopsOnStack e > 0) . throwError $ OutsideOfLoop s
 
 checkFunction :: SType -> [SType] -> TypeCheckerMonad SType
 checkFunction (Fun retType args) passedArgs = do
@@ -164,8 +185,12 @@ typeCheckStmtM (Print expr) = do
   t <- typeCheckExpr expr
   checkAnyTypeMatch t possiblePrintTypes
   correct
-typeCheckStmtM (SBreak       ) = correct
-typeCheckStmtM (SContinue    ) = correct
+typeCheckStmtM (SBreak) = do
+  env <- ask
+  checkLoopsOnStack SBreak env >> correct
+typeCheckStmtM (SContinue) = do
+  env <- ask
+  checkLoopsOnStack SContinue env >> correct
 typeCheckStmtM (Ass name expr) = do
   env <- asks types
   t   <- getOrError (M.lookup name env) (NotInitialized name)
@@ -215,6 +240,12 @@ typeCheckStmtM (BStmt (Block stmts)) = do
   env      <- ask
   blockEnv <- typeCheckStmtsM stmts
   return $ alternateStatus (status blockEnv) env
+typeCheckStmtM (While expr stmt) = do
+  env   <- ask
+  exprT <- typeCheckExpr expr
+  checkTypesMatch exprT Bool
+  blockEnv <- local (incLoopsCtr) $ typeCheckStmtM stmt
+  return $ alternateStatus (status blockEnv) env
 typeCheckStmtM _ = correct
 
 argToSType :: Arg -> SType
@@ -234,4 +265,4 @@ typeCheckStmtsM []       = ask
 typeCheckStmtsM (x : []) = typeCheckStmtM x
 typeCheckStmtsM (x : xs) = do
   env <- typeCheckStmtM x
-  typeCheckStmtsM xs
+  local (const $ alternateFunRetType (status env) env) $ typeCheckStmtsM xs
