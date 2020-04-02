@@ -4,6 +4,7 @@ void func() {
             if (y % 2 == 0) {
                 yeet(y);
             }
+            return;
         }
 
         fun2();
@@ -16,6 +17,7 @@ void func() {
     }
 
     yeet(fun(10));
+    return;
 }
 
-yeet(func());
+func();

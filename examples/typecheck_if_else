@@ -1,0 +1,7 @@
+int fun(int y) {
+    if (y == 5) {
+        return 10;
+    }
+
+    return "str";
+}

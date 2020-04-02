@@ -1,0 +1,12 @@
+int c = 0;
+
+void fun(int y) {
+    c++;
+    yeet(y);
+    if (c < 2) {
+        fun(y + 1);
+    }
+    return;
+}
+
+fun(5);
