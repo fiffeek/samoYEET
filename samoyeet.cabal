@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 27cafa54405615ef2bc6dd4beb87bc64f8a5565ad38d3708467cee1b81dbde13
+-- hash: c8a0314095d84f09e8e507b6ac2d75d2e4ec2d6d4352c814ef9923f66693997c
 
 name:           samoyeet
 version:        0.1.0.0
@@ -37,6 +37,7 @@ library
       Samoyeet.Print
       Samoyeet.Skel
       Statements
+      TypeChecker
       Utils
       ValueTypes
   other-modules:

@@ -24,6 +24,7 @@ import           Samoyeet.Abs
 
 import           Samoyeet.ErrM
 import           Evaluate                       ( execInterpretMonad )
+import           TypeChecker                    ( execTypeCheckerMonad )
 
 type ParseFun = [Token] -> Err Program
 
@@ -51,6 +52,7 @@ run v p s =
           putStrLn "\nParse Successful!"
           showTree v entire
           putStrLn "\nDoing what I was told please!\n"
+          execTypeCheckerMonad p
           execInterpretMonad p
           exitSuccess
 
