@@ -23,11 +23,12 @@ import           Samoyeet.Abs
 
 
 import           Samoyeet.ErrM
-import           Evaluate                       ( execInterpretMonad )
-import           TypeChecker                    ( execTypeCheckerMonad )
+import           Interpreter.Evaluate           ( execInterpretMonad )
+import           TypeChecker.TypeCheckerRunner  ( execTypeCheckerMonad )
 
-import           Common.CommandLineHelpers
 import           Data.Maybe
+import           Common.Utils
+import           Common.CommandLineHelpers
 import           Common.Logging
 
 type ParseFun = [Token] -> Err Program
@@ -46,12 +47,6 @@ run cla p s = parse
     Ok  entire@(Program p) -> do
       showTree cla entire
       cont p
-
-
-showTree :: CommandLineArguments -> Program -> IO ()
-showTree v tree = do
-  putStrV v $ "\n[Abstract Syntax]\n\n" ++ show tree
-  putStrV v $ "\n[Linearized tree]\n\n" ++ printTree tree
 
 usage :: CommandLineArguments -> IO ()
 usage cla = do

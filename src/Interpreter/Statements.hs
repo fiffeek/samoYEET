@@ -1,14 +1,14 @@
-module Statements where
-import           Environments
+module Interpreter.Statements where
+import           Interpreter.Environments
 import           Control.Monad.State           as CMS
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Except
 import           Samoyeet.Abs
-import           Utils
-import           ValueTypes
+import           Interpreter.Utils
+import           Interpreter.ValueTypes
 import qualified Data.Map                      as M
-import           RuntimeError
+import           Interpreter.RuntimeError
 
 getOrError :: Maybe a -> RuntimeError -> InterpretMonad a
 getOrError maybeVal error = maybe (throwError error) return maybeVal

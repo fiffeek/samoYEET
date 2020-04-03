@@ -1,4 +1,4 @@
-module RuntimeError where
+module Interpreter.RuntimeError where
 
 
 data RuntimeError = UnknownError

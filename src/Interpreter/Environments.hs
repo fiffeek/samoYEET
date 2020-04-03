@@ -1,4 +1,4 @@
-module Environments where
+module Interpreter.Environments where
 
 import qualified Data.Map                      as M
 import           Control.Monad.State
@@ -7,9 +7,9 @@ import qualified Control.Monad.State           as CMS
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Except
 import           Samoyeet.Abs
-import           ValueTypes
-import           Utils
-import           RuntimeError
+import           Interpreter.ValueTypes
+import           Interpreter.Utils
+import           Interpreter.RuntimeError
 
 type MemAdr = Int
 data Store = Store {

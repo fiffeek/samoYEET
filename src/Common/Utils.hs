@@ -1,0 +1,15 @@
+module Common.Utils where
+import           Common.CommandLineHelpers
+import           Samoyeet.Lex
+import           Samoyeet.Par
+import           Samoyeet.Skel
+import           Samoyeet.Print
+import           Samoyeet.Abs
+import           Samoyeet.ErrM
+import           Common.Logging
+
+
+showTree :: CommandLineArguments -> Program -> IO ()
+showTree v tree = do
+  putStrV v $ "\n[Abstract Syntax]\n\n" ++ show tree
+  putStrV v $ "\n[Linearized tree]\n\n" ++ printTree tree

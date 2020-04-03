@@ -1,10 +1,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module ValueTypes where
+module Interpreter.ValueTypes where
 
 import           Samoyeet.Abs
 import           Control.Monad
-import           RuntimeError
+import           Interpreter.RuntimeError
 import           Control.Monad.Except
 
 
