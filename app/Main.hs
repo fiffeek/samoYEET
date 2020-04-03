@@ -26,57 +26,47 @@ import           Samoyeet.ErrM
 import           Evaluate                       ( execInterpretMonad )
 import           TypeChecker                    ( execTypeCheckerMonad )
 
+import           Common.CommandLineHelpers
+import           Data.Maybe
+import           Common.Logging
+
 type ParseFun = [Token] -> Err Program
 
-myLLexer = myLexer
+runFile :: CommandLineArguments -> ParseFun -> FilePath -> IO ()
+runFile cla p f = putStrLn f >> readFile f >>= run cla p
 
-type Verbosity = Int
-
-putStrV :: Verbosity -> String -> IO ()
-putStrV v s = when (v > 1) $ putStrLn s
-
-runFile :: Verbosity -> ParseFun -> FilePath -> IO ()
-runFile v p f = putStrLn f >> readFile f >>= run v p
-
-run :: Verbosity -> ParseFun -> String -> IO ()
-run v p s =
-  let ts = myLLexer s
-  in  case p ts of
-        Bad s -> do
-          putStrLn "\nParse              Failed...\n"
-          putStrV v "Tokens:"
-          putStrV v $ show ts
-          putStrLn s
-          exitFailure
-        Ok entire@(Program p) -> do
-          putStrLn "\nParse Successful!"
-          showTree v entire
-          putStrLn "\nDoing what I was told please!\n"
-          execTypeCheckerMonad p
-          execInterpretMonad p
-          exitSuccess
+run :: CommandLineArguments -> ParseFun -> String -> IO ()
+run cla p s = parse
+  (\tree -> execTypeCheckerMonad tree $ execInterpretMonad tree)
+ where
+  parseError = "Parse Error: "
+  ts         = myLexer s
+  parse cont = case p ts of
+    Bad s                  -> putStrLn $ parseError ++ s
+    Ok  entire@(Program p) -> do
+      showTree cla entire
+      cont p
 
 
-showTree :: Int -> Program -> IO ()
+showTree :: CommandLineArguments -> Program -> IO ()
 showTree v tree = do
   putStrV v $ "\n[Abstract Syntax]\n\n" ++ show tree
   putStrV v $ "\n[Linearized tree]\n\n" ++ printTree tree
 
-usage :: IO ()
-usage = do
-  putStrLn $ unlines
-    [ "usage: Call with one of the following argument combinations:"
-    , "  --help          Display this help message."
-    , "  file            Parse content of files verbosely."
-    ]
+usage :: CommandLineArguments -> IO ()
+usage cla = do
+  putStrLn $ explain cla
   exitFailure
 
 main :: IO ()
 main = do
   args <- getArgs
-  case args of
-    ["--help"] -> usage
-    fs         -> mapM_ (runFile 2 pProgram) fs
+  let parsed = parseArgs args
+  dispatch parsed
+ where
+  dispatch parsed
+    | isJust . maybeHelp $ parsed = usage parsed
+    | otherwise = mapM_ (runFile parsed pProgram) (getFiles parsed)
 
 
 

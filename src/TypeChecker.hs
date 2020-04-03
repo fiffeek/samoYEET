@@ -58,8 +58,9 @@ initialEnvironment = Env { types        = M.empty
                          , loopsOnStack = 0
                          }
 
-execTypeCheckerMonad :: [Stmt] -> IO ()
-execTypeCheckerMonad = runTypeCheckerMonad initialEnvironment . typeCheckStmtsM
+execTypeCheckerMonad :: [Stmt] -> IO () -> IO ()
+execTypeCheckerMonad stmts =
+  runTypeCheckerMonad initialEnvironment (typeCheckStmtsM stmts)
 
 errorsHandler :: TypeError -> IO ()
 errorsHandler error = putStrLn . addPrefix . go $ error
@@ -71,14 +72,12 @@ errorsHandler error = putStrLn . addPrefix . go $ error
   go WrongNumberOfArguments = "wrong number of arguments"
   go _ = "som error"
 
-runTypeCheckerMonad :: Env -> TypeCheckerMonad Env -> IO ()
-runTypeCheckerMonad env m = do
+runTypeCheckerMonad :: Env -> TypeCheckerMonad Env -> IO () -> IO ()
+runTypeCheckerMonad env m cont = do
   ans <- e
   case ans of
     Left  err -> errorsHandler $ err
-    Right _   -> do
-      putStrLn $ "Wegood"
-      pure ()
+    Right _   -> cont
  where
   r = runReaderT m env
   e = runExceptT r

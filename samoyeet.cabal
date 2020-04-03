@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c8a0314095d84f09e8e507b6ac2d75d2e4ec2d6d4352c814ef9923f66693997c
+-- hash: 4394d713305494726e4a6ad615fc87ae0911df7f487bb78839a75491caa92568
 
 name:           samoyeet
 version:        0.1.0.0
@@ -27,6 +27,8 @@ source-repository head
 
 library
   exposed-modules:
+      Common.CommandLineHelpers
+      Common.Logging
       Environments
       Evaluate
       RuntimeError

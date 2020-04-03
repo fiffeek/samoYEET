@@ -121,9 +121,10 @@ execStatementM loop@(While expr stmt) = do
     else ask
  where
   matchReturnType :: Env -> InterpretMonad Env -> InterpretMonad Env
-  matchReturnType env@(Env _ _ VBreak) _ = local (changeRetType VNone) ask
-  matchReturnType env@(Env _ _ VNone) stmt = local (const env) stmt
+  matchReturnType env@(Env _ _ VNone    ) stmt = local (const env) stmt
+  matchReturnType (    Env _ _ VBreak   ) _    = local (changeRetType VNone) ask
   matchReturnType (Env _ _ VContinue) stmt = local (changeRetType VNone) stmt
+  matchReturnType (    Env _ _ t        ) _    = local (changeRetType t) ask
 execStatementM (SFnDef retType name args block) = do
   env <- ask
   return (putFunInEnv retType name args block env)
