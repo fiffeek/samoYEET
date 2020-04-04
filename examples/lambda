@@ -1,0 +1,2 @@
+Fun<int(int)> f = [] (int c): int { return 5; };
+return f(5);

@@ -7,4 +7,7 @@ data TypeError = NotAFunction
   | FunctionBodyDoesNotReturnValue
   | OutsideOfLoop Stmt
   | WrongNumberOfArguments
+  | FunctionNotReferenceable
+  | ConflictingDeclarations
+  | Redeclaration
   | UnknownError deriving Show

@@ -10,18 +10,18 @@ import           Interpreter.ValueTypes
 import qualified Data.Map                      as M
 import           Interpreter.RuntimeError
 
-getOrError :: Maybe a -> RuntimeError -> InterpretMonad a
-getOrError maybeVal error = maybe (throwError error) return maybeVal
-
 throwOnPredicate predicate error =
   if predicate then throwError error else return ()
 
 evaluateExprM :: Expr -> InterpretMonad VType
-evaluateExprM (ELitInt val ) = return (VInt val)
-evaluateExprM (ELitTrue    ) = return (VBool True)
-evaluateExprM (ELitFalse   ) = return (VBool False)
-evaluateExprM (EString val ) = return (VStr val)
-evaluateExprM (Neg     expr) = do
+evaluateExprM (ELitInt val           ) = return (VInt val)
+evaluateExprM (ELitTrue              ) = return (VBool True)
+evaluateExprM (ELitFalse             ) = return (VBool False)
+evaluateExprM (EString val           ) = return (VStr val)
+evaluateExprM (ELambda args ret block) = do
+  env <- ask
+  return $ VFun args block env ret
+evaluateExprM (Neg expr) = do
   fmap myNeg (evaluateExprM expr)
 evaluateExprM (Not expr) = do
   fmap myNot (evaluateExprM expr)
@@ -35,11 +35,7 @@ evaluateExprM (EAnd left right) =
   liftM2 myAnd (evaluateExprM left) (evaluateExprM right)
 evaluateExprM (EOr left right) =
   liftM2 myOr (evaluateExprM left) (evaluateExprM right)
-evaluateExprM (EVar var) = do
-  env   <- asks vEnv
-  loc   <- getOrError (M.lookup var env) VariableNotInitialized
-  state <- getStorage CMS.get
-  getOrError (M.lookup loc state) VariableMissingInStore
+evaluateExprM (EVar var       ) = getById var
 evaluateExprM (EApp name exprs) = do
   pEnv    <- asks pEnv
   currEnv <- ask
@@ -49,18 +45,21 @@ evaluateExprM (EApp name exprs) = do
   throwOnPredicate (length args /= length exprs) WrongNumberOfArguments
   let argExpr = args `zip` exprs
   envAfterVDecl <- local (const envF) $ dispatcher argExpr currEnv
-  let envFunc = putFunInEnv retType name args b envAfterVDecl
-  envAfterFDecl <- local (const envFunc) $ execStatementsM stmts
+  envAfterFDecl <- local (const envAfterVDecl) $ execStatementsM stmts
   return (vtype envAfterFDecl)
  where
   dispatcher :: [(Arg, Expr)] -> Env -> InterpretMonad Env
   dispatcher []                          _       = ask
   dispatcher (((Arg _ name), expr) : xs) evalEnv = do
-    val <- local (const evalEnv) $ evaluateExprM expr
-    env <- putVal name val
-    vTypeExprDispatcher val
-                        (local (const env) $ dispatcher xs evalEnv)
-                        (throwError IncompatibleTypes)
+    val    <- local (const evalEnv) $ evaluateExprM expr
+    curEnv <- ask
+    case val of
+      (VFun args body env ret) -> do
+        let envF = declareFunWithEnv ret name args body env curEnv
+        local (const envF) $ dispatcher xs evalEnv
+      _ -> do
+        env <- putVal name val
+        local (const env) $ dispatcher xs evalEnv
   dispatcher (((RefArg _ name), (EVar calledWith)) : xs) evalEnv = do
     loc <- getOrError (M.lookup calledWith $ vEnv evalEnv)
                       VariableNotReferencable
@@ -82,10 +81,18 @@ execStatementM (SBreak) = do
 execStatementM (SContinue) = do
   env <- ask
   return $ changeRetType VContinue env
-execStatementM (Decl _ []                  ) = ask
+execStatementM (Decl _           []                  ) = ask
+execStatementM (Decl t@(Fun _ _) ((NoInit name) : xs)) = do
+  env <- declareFunction name
+  local (const env) $ execStatementM (Decl t xs)
 execStatementM (Decl t ((NoInit name) : xs)) = do
   env <- putValNoInit name
   local (const env) $ execStatementM (Decl t xs)
+execStatementM (Decl t@(Fun _ _) ((Init name expr) : xs)) = do
+  (VFun args body env ret) <- evaluateExprM expr
+  curEnv                   <- ask
+  let modifiedEnv = declareFunWithEnv ret name args body env curEnv
+  local (const modifiedEnv) $ execStatementM (Decl t xs)
 execStatementM (Decl t ((Init name expr) : xs)) = do
   val <- evaluateExprM expr
   env <- putVal name val
@@ -95,11 +102,16 @@ execStatementM (Print expr) = do
   liftIO . putStrLn . show $ val
   ask
 execStatementM (Ass name expr) = do
-  val <- evaluateExprM expr
-  env <- asks vEnv
-  loc <- getOrError (M.lookup name env) VariableNotInitialized
-  CMS.modify (putValInAddr val loc)
-  ask
+  val    <- evaluateExprM expr
+  curEnv <- ask
+  case val of
+    (VFun args body env ret) ->
+      return $ declareFunWithEnv ret name args body env curEnv
+    _ -> do
+      env <- asks vEnv
+      loc <- getOrError (M.lookup name env) VariableNotInScope
+      CMS.modify (putValInAddr val loc)
+      return $ curEnv
 execStatementM (Incr name) = addToVar name 1
 execStatementM (Decr name) = addToVar name (-1)
 execStatementM (SExp expr) = do
@@ -150,10 +162,3 @@ execStatementsM (x : xs) = do
 statementValueDispatcher :: Env -> InterpretMonad Env -> InterpretMonad Env
 statementValueDispatcher env@(Env _ _ VNone) stmts = local (const env) stmts
 statementValueDispatcher env                 _     = return env
-
-vTypeExprDispatcher
-  :: VType -> InterpretMonad Env -> InterpretMonad Env -> InterpretMonad Env
-vTypeExprDispatcher (VInt  _) m1 _  = m1
-vTypeExprDispatcher (VBool _) m1 _  = m1
-vTypeExprDispatcher (VStr  _) m1 _  = m1
-vTypeExprDispatcher _         _  m2 = m2

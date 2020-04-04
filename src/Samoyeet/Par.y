@@ -39,28 +39,29 @@ import Samoyeet.ErrM
   '>=' { PT _ (TS _ 24) }
   'Fun' { PT _ (TS _ 25) }
   'List' { PT _ (TS _ 26) }
-  'and' { PT _ (TS _ 27) }
-  'boolean' { PT _ (TS _ 28) }
-  'break;' { PT _ (TS _ 29) }
-  'continue;' { PT _ (TS _ 30) }
-  'do' { PT _ (TS _ 31) }
-  'else' { PT _ (TS _ 32) }
-  'false' { PT _ (TS _ 33) }
-  'for' { PT _ (TS _ 34) }
-  'from' { PT _ (TS _ 35) }
-  'if' { PT _ (TS _ 36) }
-  'int' { PT _ (TS _ 37) }
-  'or' { PT _ (TS _ 38) }
-  'push' { PT _ (TS _ 39) }
-  'return' { PT _ (TS _ 40) }
-  'string' { PT _ (TS _ 41) }
-  'to' { PT _ (TS _ 42) }
-  'true' { PT _ (TS _ 43) }
-  'void' { PT _ (TS _ 44) }
-  'while' { PT _ (TS _ 45) }
-  'yeet' { PT _ (TS _ 46) }
-  '{' { PT _ (TS _ 47) }
-  '}' { PT _ (TS _ 48) }
+  '[]' { PT _ (TS _ 27) }
+  'and' { PT _ (TS _ 28) }
+  'boolean' { PT _ (TS _ 29) }
+  'break;' { PT _ (TS _ 30) }
+  'continue;' { PT _ (TS _ 31) }
+  'do' { PT _ (TS _ 32) }
+  'else' { PT _ (TS _ 33) }
+  'false' { PT _ (TS _ 34) }
+  'for' { PT _ (TS _ 35) }
+  'from' { PT _ (TS _ 36) }
+  'if' { PT _ (TS _ 37) }
+  'int' { PT _ (TS _ 38) }
+  'or' { PT _ (TS _ 39) }
+  'push' { PT _ (TS _ 40) }
+  'return' { PT _ (TS _ 41) }
+  'string' { PT _ (TS _ 42) }
+  'to' { PT _ (TS _ 43) }
+  'true' { PT _ (TS _ 44) }
+  'void' { PT _ (TS _ 45) }
+  'while' { PT _ (TS _ 46) }
+  'yeet' { PT _ (TS _ 47) }
+  '{' { PT _ (TS _ 48) }
+  '}' { PT _ (TS _ 49) }
 
   L_ident {PT _ (TV $$)}
   L_integ {PT _ (TI $$)}
@@ -232,6 +233,9 @@ SType :: {
 | 'List' '<' SType '>' {
   Samoyeet.Abs.TList $3 
 }
+| 'Fun' '<' SType '(' ListMaybeRefType ')' '>' {
+  Samoyeet.Abs.Fun $3 $5 
+}
 
 MaybeRefType :: {
   MaybeRefType 
@@ -359,8 +363,8 @@ Expr :: {
 : Expr1 'or' Expr {
   Samoyeet.Abs.EOr $1 $3 
 }
-| ListMaybeRefType ':' SType Block {
-  Samoyeet.Abs.ELambda $1 $3 $4 
+| '[]' '(' ListArg ')' ':' SType Block {
+  Samoyeet.Abs.ELambda $3 $6 $7 
 }
 | Expr1 {
   $1 

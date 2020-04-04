@@ -69,7 +69,7 @@ Void.     SType ::= "void" ;
 
 TList.     SType ::= "List" "<" SType ">" ;
 
-internal   Fun. SType ::= "Fun" "<" SType "(" [MaybeRefType] ")" ">" ;
+Fun.       SType ::= "Fun" "<" SType "(" [MaybeRefType] ")" ">" ;
 
 NoRef.     MaybeRefType ::= SType ;
 
@@ -116,7 +116,7 @@ EAnd.      Expr1 ::= Expr2 "and" Expr1 ;
 
 EOr.       Expr ::= Expr1 "or" Expr ;
 
-ELambda.   Expr  ::= [MaybeRefType] ":" SType Block ;
+ELambda.   Expr  ::= "[]" "(" [Arg] ")" ":" SType Block;
 
 coercions  Expr 6 ;
 

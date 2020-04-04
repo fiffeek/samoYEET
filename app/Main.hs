@@ -38,8 +38,9 @@ runFile cla p f = putStrLn f >> readFile f >>= run cla p
 
 run :: CommandLineArguments -> ParseFun -> String -> IO ()
 run cla p s = parse
-  (\tree -> execTypeCheckerMonad tree $ execInterpretMonad tree)
+  (\tree -> typeCheck tree $ execInterpretMonad tree)
  where
+  typeCheck tree cont = if isTypeCheckEnabled cla then execTypeCheckerMonad tree $ cont else cont
   parseError = "Parse Error: "
   ts         = myLexer s
   parse cont = case p ts of

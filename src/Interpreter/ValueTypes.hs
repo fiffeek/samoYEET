@@ -2,13 +2,42 @@
 
 module Interpreter.ValueTypes where
 
+import qualified Data.Map                      as M
 import           Samoyeet.Abs
 import           Control.Monad
 import           Interpreter.RuntimeError
 import           Control.Monad.Except
 
+type MemAdr = Int
+data Store = Store {
+    storage ::  M.Map MemAdr VType,
+    freeAddresses :: [MemAdr]
+}
+type VEnv = M.Map Ident MemAdr
+type PEnv = M.Map Ident FunctionDefinition
 
-data VType = VInt Integer | VStr String | VBool Bool | VVoid | VNone | VBreak | VContinue
+data Env = Env {
+  vEnv :: VEnv,
+  pEnv :: PEnv,
+  vtype :: VType
+} deriving Show
+
+data FunctionDefinition = FunctionDefinition {
+  pType :: SType,
+  ident :: Ident,
+  pArgs :: [Arg],
+  body :: Block,
+  env :: Env
+} deriving Show
+
+data VType = VInt Integer
+  | VStr String
+  | VBool Bool
+  | VVoid
+  | VNone
+  | VBreak
+  | VContinue
+  | VFun { fArgs:: [Arg], fBody :: Block, fEnv :: Env, fRet :: SType }
 
 instance Show VType where
   show VVoid       = "void"

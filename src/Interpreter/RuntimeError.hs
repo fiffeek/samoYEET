@@ -8,4 +8,5 @@ data RuntimeError = UnknownError
   | IncompatibleTypes
   | FunctionNotInitialized
   | WrongNumberOfArguments
+  | VariableNotInScope
   | VariableNotReferencable deriving Show

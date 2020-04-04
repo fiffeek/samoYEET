@@ -22,8 +22,9 @@ errorsHandler error = putStrLn . addPrefix . go $ error
   go (TypeMismatch actual expected) =
     "expected = [" ++ (show expected) ++ "] actual = [" ++ (show actual) ++ "]"
   go (NotInitialized idn) = "variable = [" ++ (show idn) ++ "] not initialized"
-  go WrongNumberOfArguments = "wrong number of arguments"
-  go _ = "som error"
+  go WrongNumberOfArguments         = "wrong number of arguments"
+  go FunctionBodyDoesNotReturnValue = "f"
+  go _                              = "som error"
 
 runTypeCheckerMonad :: Env -> TypeCheckerMonad Env -> IO () -> IO ()
 runTypeCheckerMonad env m cont = do

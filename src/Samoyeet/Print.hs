@@ -161,7 +161,7 @@ instance Print Expr where
     ERel expr1 relop expr2 -> prPrec i 2 (concatD [prt 2 expr1, prt 0 relop, prt 3 expr2])
     EAnd expr1 expr2 -> prPrec i 1 (concatD [prt 2 expr1, doc (showString "and"), prt 1 expr2])
     EOr expr1 expr2 -> prPrec i 0 (concatD [prt 1 expr1, doc (showString "or"), prt 0 expr2])
-    ELambda maybereftypes stype block -> prPrec i 0 (concatD [prt 0 maybereftypes, doc (showString ":"), prt 0 stype, prt 0 block])
+    ELambda args stype block -> prPrec i 0 (concatD [doc (showString "[]"), doc (showString "("), prt 0 args, doc (showString ")"), doc (showString ":"), prt 0 stype, prt 0 block])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])

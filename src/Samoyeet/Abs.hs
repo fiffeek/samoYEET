@@ -64,7 +64,7 @@ data Expr
     | ERel Expr RelOp Expr
     | EAnd Expr Expr
     | EOr Expr Expr
-    | ELambda [MaybeRefType] SType Block
+    | ELambda [Arg] SType Block
   deriving (Eq, Ord, Show, Read)
 
 data AddOp = Plus | Minus

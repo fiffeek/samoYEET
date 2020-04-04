@@ -11,27 +11,8 @@ import           Interpreter.ValueTypes
 import           Interpreter.Utils
 import           Interpreter.RuntimeError
 
-type MemAdr = Int
-data Store = Store {
-    storage ::  M.Map MemAdr VType,
-    freeAddresses :: [MemAdr]
-}
-type VEnv = M.Map Ident MemAdr
-type PEnv = M.Map Ident FunctionDefinition
-
-data Env = Env {
-  vEnv :: VEnv,
-  pEnv :: PEnv,
-  vtype :: VType
-} deriving Show
-
-data FunctionDefinition = FunctionDefinition {
-  pType :: SType,
-  ident :: Ident,
-  pArgs :: [Arg],
-  body :: Block,
-  env :: Env
-} deriving Show
+getOrError :: Maybe a -> RuntimeError -> InterpretMonad a
+getOrError maybeVal error = maybe (throwError error) return maybeVal
 
 type InterpretMonad a
   = ReaderT Env (CMS.StateT Store (ExceptT RuntimeError IO)) a
@@ -78,7 +59,7 @@ putValNoInit name = do
 
 putValInEnv :: Ident -> MemAdr -> Env -> Env
 putValInEnv name addr env = Env { vEnv  = M.insert name addr (vEnv env)
-                                , pEnv  = pEnv env
+                                , pEnv  = M.delete name (pEnv env)
                                 , vtype = vtype env
                                 }
 
@@ -90,9 +71,8 @@ flushVariables env1 env2 =
   Env { vEnv = vEnv env1, pEnv = pEnv env1, vtype = vtype env2 }
 
 putFunInEnv :: SType -> Ident -> [Arg] -> Block -> Env -> Env
-putFunInEnv t n args b env = Env { vEnv  = vEnv env
-                                 , pEnv  = M.insert n makeFunc (pEnv env)
-                                 , vtype = vtype env
+putFunInEnv t n args b env = env { vEnv = M.delete n (vEnv env)
+                                 , pEnv = M.insert n makeFunc (pEnv env)
                                  }
  where
   makeFunc = FunctionDefinition
@@ -100,8 +80,43 @@ putFunInEnv t n args b env = Env { vEnv  = vEnv env
     , ident = n
     , pArgs = args
     , body  = b
-    , env   = Env { vEnv  = vEnv env
+    , env   = Env { vEnv  = M.delete n (vEnv env)
                   , pEnv  = M.insert n makeFunc (pEnv env)
                   , vtype = vtype env
                   }
     }
+
+declareFunWithEnv :: SType -> Ident -> [Arg] -> Block -> Env -> Env -> Env
+declareFunWithEnv t n args b fenv env = env
+  { vEnv = M.delete n (vEnv env)
+  , pEnv = M.insert n makeFunc (pEnv env)
+  }
+ where
+  makeFunc = FunctionDefinition { pType = t
+                                , ident = n
+                                , pArgs = args
+                                , body  = b
+                                , env   = fenv
+                                }
+
+funDefToVType :: FunctionDefinition -> VType
+funDefToVType (FunctionDefinition ret _ args body env) =
+  VFun { fArgs = args, fBody = body, fEnv = env, fRet = ret }
+
+getById :: Ident -> InterpretMonad VType
+getById ident = do
+  env <- ask
+  let var = M.lookup ident (vEnv env)
+  let f   = M.lookup ident (pEnv env)
+  case (var, f) of
+    ((Just loc), _) -> do
+      state <- getStorage CMS.get
+      getOrError (M.lookup loc state) VariableMissingInStore
+    (_, (Just f)) -> do
+      return $ funDefToVType f
+    _ -> throwError VariableNotInitialized
+
+declareFunction :: Ident -> InterpretMonad Env
+declareFunction ident = do
+  env <- ask
+  return env { vEnv = M.delete ident (vEnv env) }

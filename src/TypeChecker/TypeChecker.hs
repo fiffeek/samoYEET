@@ -50,26 +50,30 @@ checkLoopsOnStack :: Stmt -> Env -> TypeCheckerMonad ()
 checkLoopsOnStack s e = do
   unless (loopsOnStack e > 0) . throwError $ OutsideOfLoop s
 
+checkFunctionArgument :: Arg -> TypeCheckerMonad ()
+checkFunctionArgument (Arg (Fun _ _) _) = pure ()
+checkFunctionArgument (RefArg (Fun _ _) _) =
+  throwError FunctionNotReferenceable
+checkFunctionArgument t =
+  checkAnyTypeMatch (argToSType t) varPossibleTypes >> pure ()
+
 checkFunction :: SType -> [SType] -> TypeCheckerMonad SType
 checkFunction (Fun retType args) passedArgs = do
-  checkAnyTypeMatch retType functionReturnTypes
-  sequence $ map (flip checkAnyTypeMatch varPossibleTypes) argsToType
   checkSameLength args passedArgs
-  let passedWithActualType = passedArgs `zip` argsToType
-  sequence_ $ map (\(x, y) -> checkTypesMatch x y) passedWithActualType
+  let passedWithActualType = passedArgs `zip` (map maybeRefToSType args)
+  sequence_ $ map (uncurry checkTypesMatch) passedWithActualType
   return retType
- where
-  argToType (NoRef   t) = t
-  argToType (JustRef t) = t
-  argsToType = map argToType args
 checkFunction _ _ = throwError NotAFunction
 
 typeCheckExpr :: Expr -> TypeCheckerMonad SType
-typeCheckExpr (ELitInt _) = return Int
-typeCheckExpr (ELitTrue ) = return Bool
-typeCheckExpr (ELitFalse) = return Bool
-typeCheckExpr (EString _) = return Str
-typeCheckExpr (Neg     v) = do
+typeCheckExpr (ELitInt _             ) = return Int
+typeCheckExpr (ELitTrue              ) = return Bool
+typeCheckExpr (ELitFalse             ) = return Bool
+typeCheckExpr (EString _             ) = return Str
+typeCheckExpr (ELambda args ret block) = do
+  typeCheckStmtM (SFnDef ret (Ident "[]") args block)
+  return $ Fun ret (map argToRefType args)
+typeCheckExpr (Neg v) = do
   t <- typeCheckExpr v
   checkTypesMatch (Int) t
 typeCheckExpr (Not v) = do
@@ -85,8 +89,7 @@ typeCheckExpr (EAnd left right) = typeCheckExprEq left right [Bool]
 typeCheckExpr (EOr  left right) = typeCheckExprEq left right [Bool]
 typeCheckExpr (EVar v         ) = do
   env <- asks types
-  t   <- getOrError (M.lookup v env) (NotInitialized v)
-  checkAnyTypeMatch t varPossibleTypes
+  getOrError (M.lookup v env) (NotInitialized v)
 typeCheckExpr (EApp name exprs) = do
   env    <- asks types
   t      <- getOrError (M.lookup name env) (NotInitialized name)
@@ -132,47 +135,49 @@ typeCheckStmtM (Cond expr stmt) = do
   env <- ask
   t   <- typeCheckExpr expr
   checkTypesMatch t Bool
-  blockEnv <- typeCheckStmtM stmt
+  blockEnv <- local (putBlockOnStack) $ typeCheckStmtM stmt
   return $ alternateStatus (status blockEnv) env
 typeCheckStmtM (CondElse expr stmt1 stmt2) = do
   env <- ask
   t   <- typeCheckExpr expr
   checkTypesMatch t Bool
-  blockEnv1 <- typeCheckStmtM stmt1
-  blockEnv2 <- typeCheckStmtM stmt2
+  blockEnv1 <- local (putBlockOnStack) $ typeCheckStmtM stmt1
+  blockEnv2 <- local (putBlockOnStack) $ typeCheckStmtM stmt2
   checkReturnTypes (status blockEnv1) (status blockEnv2)
   return $ alternateStatus (status blockEnv2)
                            (alternateStatus (status blockEnv1) env)
 typeCheckStmtM (Decl _ []                  ) = ask
 typeCheckStmtM (Decl t ((NoInit name) : xs)) = do
-  local (putType name t) $ typeCheckStmtM (Decl t xs)
+  curEnv <- ask
+  env    <- putType name t curEnv
+  local (const env) $ typeCheckStmtM (Decl t xs)
 typeCheckStmtM (Decl t ((Init name expr) : xs)) = do
-  val <- typeCheckExpr expr
+  curEnv <- ask
+  val    <- typeCheckExpr expr
   checkTypesMatch t val
-  local (putType name t) $ typeCheckStmtM (Decl t xs)
+  env <- putType name t curEnv
+  local (const env) $ typeCheckStmtM (Decl t xs)
 typeCheckStmtM (SFnDef retType name args block) = do
   entireEnv <- ask
-  env       <- asks types
-  let argTypes = map argToSType args
-  sequence_ $ fmap (flip checkAnyTypeMatch varPossibleTypes) argTypes
+  sequence_ $ fmap checkFunctionArgument args
   let maybeRefArgType = map argToRefType args
-  let decl            = map argToNoInit args
-  envAfterDecl <- typeCheckStmtsM decl
-  let putFun     = putType name (Fun retType maybeRefArgType) envAfterDecl
+  envAfterDecl <- local (putBlockOnStack)
+    $ typeCheckStmtsM (map argToNoInit args)
+  putFun <- putType name (Fun retType maybeRefArgType) envAfterDecl
   let putRetType = putFunRetType retType putFun
   envBody  <- local (const putRetType) $ typeCheckStmtM (BStmt block)
   bodyType <- getOrError (status envBody) (FunctionBodyDoesNotReturnValue)
   checkTypesMatch retType bodyType
-  return $ putType name (Fun retType maybeRefArgType) entireEnv
+  putType name (Fun retType maybeRefArgType) entireEnv
 typeCheckStmtM (BStmt (Block stmts)) = do
   env      <- ask
-  blockEnv <- typeCheckStmtsM stmts
+  blockEnv <- local (putBlockOnStack) $ typeCheckStmtsM stmts
   return $ alternateStatus (status blockEnv) env
 typeCheckStmtM (While expr stmt) = do
   env   <- ask
   exprT <- typeCheckExpr expr
   checkTypesMatch exprT Bool
-  blockEnv <- local (incLoopsCtr) $ typeCheckStmtM stmt
+  blockEnv <- local (putLoopOnStack) $ typeCheckStmtM stmt
   return $ alternateStatus (status blockEnv) env
 typeCheckStmtM _ = correct
 

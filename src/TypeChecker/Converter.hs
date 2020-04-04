@@ -12,3 +12,7 @@ argToRefType (RefArg t _) = JustRef t
 argToNoInit :: Arg -> Stmt
 argToNoInit (Arg    t n) = Decl t [NoInit n]
 argToNoInit (RefArg t n) = Decl t [NoInit n]
+
+maybeRefToSType :: MaybeRefType -> SType
+maybeRefToSType (NoRef   t) = t
+maybeRefToSType (JustRef t) = t

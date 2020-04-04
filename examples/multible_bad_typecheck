@@ -1,0 +1,6 @@
+int a;
+
+int fun(boolean a) {
+    boolean a;
+    return 5;
+}

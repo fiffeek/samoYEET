@@ -24,6 +24,7 @@ errorsHandler error = putStrLn . addPrefix . go $ error
   go DivisionByZero         = "Division by zero"
   go WrongNumberOfArguments = "Wrong number of arguments passed to function"
   go IncompatibleTypes      = "Incompatible types"
+  go FunctionNotInitialized = "Function not in scope"
   go _                      = "Unknown error"
 
 runInterpretMonad :: Env -> Store -> InterpretMonad Env -> IO ()

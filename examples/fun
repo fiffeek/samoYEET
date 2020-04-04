@@ -1,0 +1,35 @@
+Fun<int(int)> fun(int t) {
+    int g(int y) {
+        if (y == 1) {
+            return 1;
+        }
+
+        return (y + t) * g(y - 1);
+    }
+
+    return g;
+}
+
+void myPrint(Fun<int(int)> t, Fun<int(int)> y) {
+    yeet(t(6));
+    yeet(y(8));
+    return;
+}
+
+void adder(int& i) {
+    i++;
+    return;
+}
+
+void refCheck(Fun<void(int&)> f, Fun<void(int&)> g) {
+    int ctr = 0;
+    f(ctr);
+    g(ctr);
+    yeet(ctr);
+    return;
+}
+
+Fun<int(int)> p = fun(0);
+myPrint(p, p);
+refCheck(adder, adder);
+refCheck(adder, [] (int& ctr):void { ctr++; return; });

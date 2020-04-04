@@ -43,9 +43,10 @@ The symbols used in samoyeet are the following:
   | ; | = | ++ | --
   | ( | ) | break; | continue;
   | < | > | . | .length()
-  | .at( | - | ! | :
-  | + | * | / | %
-  | <= | >= | == | !=
+  | .at( | - | ! | []
+  | : | + | * | /
+  | % | <= | >= | ==
+  | != |  |  | 
 
 ===Comments===
 Single-line comments begin with #, //.Multiple-line comments are  enclosed with /* and */.
@@ -92,6 +93,7 @@ All other symbols are terminals.
   |  |  **|**  | ``boolean`` 
   |  |  **|**  | ``void`` 
   |  |  **|**  | ``List`` ``<`` //SType// ``>`` 
+  |  |  **|**  | ``Fun`` ``<`` //SType// ``(`` //[MaybeRefType]// ``)`` ``>`` 
   | //MaybeRefType// | -> | //SType// 
   |  |  **|**  | //SType// ``&`` 
   | //[MaybeRefType]// | -> | **eps**
@@ -121,7 +123,7 @@ All other symbols are terminals.
   | //Expr1// | -> | //Expr2// ``and`` //Expr1// 
   |  |  **|**  | //Expr2// 
   | //Expr// | -> | //Expr1// ``or`` //Expr// 
-  |  |  **|**  | //[MaybeRefType]// ``:`` //SType// //Block// 
+  |  |  **|**  | ``[]`` ``(`` //[Arg]// ``)`` ``:`` //SType// //Block// 
   |  |  **|**  | //Expr1// 
   | //[Expr]// | -> | **eps**
   |  |  **|**  | //Expr// 
