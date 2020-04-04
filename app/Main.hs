@@ -37,10 +37,11 @@ runFile :: CommandLineArguments -> ParseFun -> FilePath -> IO ()
 runFile cla p f = putStrLn f >> readFile f >>= run cla p
 
 run :: CommandLineArguments -> ParseFun -> String -> IO ()
-run cla p s = parse
-  (\tree -> typeCheck tree $ execInterpretMonad tree)
+run cla p s = parse (\tree -> typeCheck tree cla $ execInterpretMonad tree)
  where
-  typeCheck tree cont = if isTypeCheckEnabled cla then execTypeCheckerMonad tree $ cont else cont
+  typeCheck tree cla cont
+    | isTypeCheckEnabled cla = execTypeCheckerMonad cla tree $ cont
+    | otherwise              = cont
   parseError = "Parse Error: "
   ts         = myLexer s
   parse cont = case p ts of

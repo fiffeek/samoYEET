@@ -9,10 +9,11 @@ import           Control.Applicative
 import           TypeChecker.TypeChecker
 import           TypeChecker.TypeError
 import           TypeChecker.Environment
+import           Common.CommandLineHelpers
 
 
-execTypeCheckerMonad :: [Stmt] -> IO () -> IO ()
-execTypeCheckerMonad stmts =
+execTypeCheckerMonad :: CommandLineArguments -> [Stmt] -> IO () -> IO ()
+execTypeCheckerMonad cla stmts =
   runTypeCheckerMonad initialEnvironment (typeCheckStmtsM stmts)
 
 errorsHandler :: TypeError -> IO ()

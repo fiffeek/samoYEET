@@ -4,9 +4,9 @@ import           Data.List
 class Explain a where
     explain :: a -> String
 
-data CommandLineArgument = Help 
- | Debug { dEnabled :: Bool } 
- | Warnings { wEnabled :: Bool } 
+data CommandLineArgument = Help
+ | Debug { dEnabled :: Bool }
+ | Warnings { wEnabled :: Bool }
  | Files {files :: [String] }
  | TypeCheck { tcEnabled :: Bool }
 initDebug = Debug False
@@ -14,16 +14,19 @@ initWarning = Warnings False
 initTypeCheck = TypeCheck True
 
 instance Show CommandLineArgument where
-  show (Debug    _) = "--debug"
-  show (Warnings _) = "--warnings"
-  show (Help      ) = "--help"
-  show (TypeCheck _) = "--disable-type-check"
-  show _            = ""
+  show = prefix . go
+   where
+    prefix = (++) "--"
+    go (Debug    _ ) = "debug"
+    go (Warnings _ ) = "warnings"
+    go (Help       ) = "help"
+    go (TypeCheck _) = "disable-type-check"
+    go _             = ""
 
 instance Explain CommandLineArgument where
   explain = go
    where
-    indent = 15
+    indent = 30
     getIndent str = concat $ replicate (indent - (length str)) " "
     go d@(Debug _) =
       intercalate (getIndent . show $ d) [show d, "Enable debug logging."]
@@ -45,9 +48,10 @@ parseArgs args = CLA
   { maybeHelp = fmap (\_ -> Help) (find ((show Help) ==) args)
   , debug     = Debug $ (show initDebug) `elem` args
   , warnings  = Warnings $ (show initWarning) `elem` args
-  , typeCheck = TypeCheck . not $ (show initTypeCheck) `elem` args 
-  , fs        = Files
-                  $ filter (not . flip elem [show initDebug, show initWarning, show initTypeCheck]) args
+  , typeCheck = TypeCheck . not $ (show initTypeCheck) `elem` args
+  , fs        = Files $ filter
+    (not . flip elem [show initDebug, show initWarning, show initTypeCheck])
+    args
   }
 
 instance Explain CommandLineArguments where
@@ -65,8 +69,8 @@ isDebugEnabled cla = go $ debug cla
 isTypeCheckEnabled :: CommandLineArguments -> Bool
 isTypeCheckEnabled cla = go $ typeCheck cla
  where
-   go (TypeCheck True) = True
-   go _ = False
+  go (TypeCheck True) = True
+  go _                = False
 
 getFiles :: CommandLineArguments -> [String]
 getFiles cla = go $ fs cla
