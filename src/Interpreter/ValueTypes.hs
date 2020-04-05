@@ -51,6 +51,8 @@ instance Eq VType where
   (VInt  left) == (VInt  right) = left == right
   (VStr  left) == (VStr  right) = left == right
   (VBool left) == (VBool right) = left == right
+  (VNone     ) == (VNone      ) = True
+  _            == _             = False
 
 
 instance Ord VType where
@@ -97,14 +99,11 @@ myMul op left right = do
   (matcher op) l r
  where
   myTimes (VInt left) (VInt right) = pure . VInt $ left * right
-  myTimes _           _            = throwError IncompatibleTypes
 
   myDiv (VInt left) (VInt 0    ) = throwError DivisionByZero
   myDiv (VInt left) (VInt right) = pure . VInt $ left `div` right
-  myDiv _           _            = throwError IncompatibleTypes
 
   myMod (VInt left) (VInt right) = pure . VInt $ left `mod` right
-  myMod _           _            = throwError IncompatibleTypes
 
   matcher Times = myTimes
   matcher Div   = myDiv

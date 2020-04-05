@@ -26,10 +26,14 @@ errorsHandler error = do
  where
   addPrefix = (++) "Type error: "
   go (TypeMismatch actual expected) =
-    "expected = [" ++ (show expected) ++ "] actual = [" ++ (show actual) ++ "]"
-  go (NotInitialized idn) = "variable = [" ++ (show idn) ++ "] not initialized"
-  go WrongNumberOfArguments         = "wrong number of arguments"
-  go FunctionBodyDoesNotReturnValue = "f"
+    "expected any of " ++ (show expected) ++ ", actual type " ++ (show actual)
+  go (NotInitialized idn) = "Variable" ++ (show idn) ++ "not initialized"
+  go WrongNumberOfArguments = "Wrong number of arguments passed to function"
+  go FunctionBodyDoesNotReturnValue = "Function does not return value"
+  go (OutsideOfLoop _         )     = "Statement outside of loop"
+  go (FunctionNotReferenceable)     = "Functions are not referenceable"
+  go (ConflictingDeclarations )     = "Redeclaration, conflicting types"
+  go (Redeclaration           )     = "Redeclaration of variable"
   go _                              = "Unknown error"
 
 runTypeCheckerMonad :: Env -> TypeCheckerMonad Env -> IO () -> IO ()

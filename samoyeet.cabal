@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 18cf9badf4c76fdbc7ef93731321c3a1eeb2e1700310ef49b4578ce7b851b695
+-- hash: 6fea8b9ada535409b95ce47b2d41a911ff02677dabb1a92c2be440bbb0a62ec6
 
 name:           samoyeet
 version:        0.1.0.0
@@ -34,7 +34,6 @@ library
       Interpreter.Evaluate
       Interpreter.RuntimeError
       Interpreter.Statements
-      Interpreter.Utils
       Interpreter.ValueTypes
       Samoyeet.Abs
       Samoyeet.ErrM

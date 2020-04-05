@@ -8,11 +8,7 @@ import           Control.Monad.Trans.Maybe
 import           Control.Monad.Except
 import           Samoyeet.Abs
 import           Interpreter.ValueTypes
-import           Interpreter.Utils
 import           Interpreter.RuntimeError
-
-getOrError :: Maybe a -> RuntimeError -> InterpretMonad a
-getOrError maybeVal error = maybe (throwError error) return maybeVal
 
 type InterpretMonad a
   = ReaderT Env (CMS.StateT Store (ExceptT RuntimeError IO)) a
@@ -111,10 +107,10 @@ getById ident = do
   case (var, f) of
     ((Just loc), _) -> do
       state <- getStorage CMS.get
-      getOrError (M.lookup loc state) VariableMissingInStore
+      let (Just v) = M.lookup loc state
+      return v
     (_, (Just f)) -> do
       return $ funDefToVType f
-    _ -> throwError VariableNotInitialized
 
 declareFunction :: Ident -> InterpretMonad Env
 declareFunction ident = do

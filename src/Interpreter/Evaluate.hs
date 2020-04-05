@@ -5,7 +5,6 @@ import           Control.Monad.Reader
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Except
 import           Samoyeet.Abs
-import           Interpreter.Utils
 import           Interpreter.ValueTypes
 import qualified Data.Map                      as M
 import           Interpreter.RuntimeError
@@ -23,13 +22,9 @@ errorsHandler error = do
   exitFailure
  where
   addPrefix = (++) "Error: "
-  go VariableNotInitialized = "Variable was not initialized"
-  go VariableMissingInStore = "Variable was not initialized"
-  go DivisionByZero         = "Division by zero"
-  go WrongNumberOfArguments = "Wrong number of arguments passed to function"
-  go IncompatibleTypes      = "Incompatible types"
-  go FunctionNotInitialized = "Function not in scope"
-  go _                      = "Unknown error"
+  go DivisionByZero   = "Division by zero"
+  go ValueNotReturned = "Function did not return a value"
+  go _                = "Unknown error"
 
 runInterpretMonad :: Env -> Store -> InterpretMonad Env -> IO ()
 runInterpretMonad env state m = do
