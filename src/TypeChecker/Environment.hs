@@ -43,6 +43,9 @@ putFunRetType t1 e = e { funRetType = Just t1 }
 putBlockOnStack :: Env -> Env
 putBlockOnStack env = env { blocksOnStack = (+) 1 $ blocksOnStack env }
 
+removeBlockFromStack :: Env -> Env
+removeBlockFromStack env = env { blocksOnStack = (-) 1 $ blocksOnStack env }
+
 alternateStatus :: Maybe SType -> Env -> Env
 alternateStatus s e = e { status = status e <|> s }
 

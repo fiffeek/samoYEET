@@ -1,4 +1,7 @@
-module TypeChecker.TypeChecker where
+module TypeChecker.TypeChecker
+  ( typeCheckStmtsM
+  )
+where
 import           Samoyeet.Abs
 import           Control.Monad.State           as CMS
 import           Control.Monad.Reader
@@ -157,7 +160,8 @@ typeCheckStmtM (SFnDef retType name args block) = do
     $ typeCheckStmtsM (map argToNoInit args)
   putFun <- putType name (Fun retType maybeRefArgType) envAfterDecl
   let putRetType = putFunRetType retType putFun
-  envBody  <- local (const putRetType) $ typeCheckStmtM (BStmt block)
+  let blockOut   = removeBlockFromStack putRetType
+  envBody  <- local (const blockOut) $ typeCheckStmtM (BStmt block)
   bodyType <- getOrError (status envBody) (FunctionBodyDoesNotReturnValue)
   ensureType retType bodyType
   putType name (Fun retType maybeRefArgType) entireEnv

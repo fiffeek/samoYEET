@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 13ef7c445f4eddf153bb082ce96aad91800c655034535bb19a678b7e207c4b23
+-- hash: 5a84d620712cb7c35c34097c080d2cac57e141896090ea22bbd05fcfb9940437
 
 name:           samoyeet
 version:        0.1.0.0
@@ -30,11 +30,11 @@ library
       Common.CommandLineHelpers
       Common.Logging
       Common.Utils
-      Interpreter.Environments
-      Interpreter.Evaluate
+      Interpreter.Environment
+      Interpreter.Interpreter
+      Interpreter.Runner
       Interpreter.RuntimeError
-      Interpreter.Statements
-      Interpreter.ValueTypes
+      Interpreter.Types
       Samoyeet.Abs
       Samoyeet.ErrM
       Samoyeet.Lex

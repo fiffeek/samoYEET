@@ -1,4 +1,4 @@
-module Interpreter.Environments where
+module Interpreter.Environment where
 
 import qualified Data.Map                      as M
 import           Control.Monad.State
@@ -7,7 +7,7 @@ import qualified Control.Monad.State           as CMS
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Except
 import           Samoyeet.Abs
-import           Interpreter.ValueTypes
+import           Interpreter.Types
 import           Interpreter.RuntimeError
 
 type InterpretMonad a
@@ -26,24 +26,22 @@ getFreeAddr :: Store -> (MemAdr, [MemAdr])
 getFreeAddr store = (head freeAddrs, tail freeAddrs)
   where freeAddrs = freeAddresses store
 
-putVal :: Ident -> VType -> InterpretMonad Env
-putVal name val = do
+putValInit :: Ident -> VType -> InterpretMonad Env
+putValInit name val = do
   env   <- ask
   state <- CMS.get
   let splitState@(loc, _) = getFreeAddr state
   CMS.modify (putValInStore val splitState)
-  return $ putValInEnv name loc env
-
-putValInStore :: VType -> (MemAdr, [MemAdr]) -> Store -> Store
-putValInStore val (freeAddr, rest) s =
-  Store { storage = M.insert freeAddr val (storage s), freeAddresses = rest }
+  return $ putVal name loc env
+ where
+  putValInStore :: VType -> (MemAdr, [MemAdr]) -> Store -> Store
+  putValInStore val (freeAddr, rest) s =
+    Store { storage = M.insert freeAddr val (storage s), freeAddresses = rest }
 
 putValInAddr :: VType -> MemAdr -> Store -> Store
 putValInAddr val addr s = Store { storage       = M.insert addr val (storage s)
                                 , freeAddresses = freeAddresses s
                                 }
-updateFreeAddrs :: [MemAdr] -> Store -> Store
-updateFreeAddrs rest s = Store { storage = storage s, freeAddresses = rest }
 
 putValNoInit :: Ident -> InterpretMonad Env
 putValNoInit name = do
@@ -51,20 +49,22 @@ putValNoInit name = do
   state <- CMS.get
   let (loc, rest) = getFreeAddr state
   CMS.modify (updateFreeAddrs rest)
-  return $ putValInEnv name loc env
+  return $ putVal name loc env
+ where
+  updateFreeAddrs :: [MemAdr] -> Store -> Store
+  updateFreeAddrs rest s = Store { storage = storage s, freeAddresses = rest }
 
-putValInEnv :: Ident -> MemAdr -> Env -> Env
-putValInEnv name addr env = Env { vEnv  = M.insert name addr (vEnv env)
-                                , pEnv  = M.delete name (pEnv env)
-                                , vtype = vtype env
-                                }
+putVal :: Ident -> MemAdr -> Env -> Env
+putVal name addr env = Env { vEnv  = M.insert name addr (vEnv env)
+                           , pEnv  = M.delete name (pEnv env)
+                           , vtype = vtype env
+                           }
 
 changeRetType :: VType -> Env -> Env
 changeRetType v env = Env { vEnv = vEnv env, pEnv = pEnv env, vtype = v }
 
 flushVariables :: Env -> Env -> Env
-flushVariables env1 env2 =
-  Env { vEnv = vEnv env1, pEnv = pEnv env1, vtype = vtype env2 }
+flushVariables env1 env2 = changeRetType (vtype env2) env1
 
 putFunInEnv :: SType -> Ident -> [Arg] -> Block -> Env -> Env
 putFunInEnv t n args b env = env { vEnv = M.delete n (vEnv env)
@@ -95,10 +95,6 @@ declareFunWithEnv t n args b fenv env = env
                                 , env   = fenv
                                 }
 
-funDefToVType :: FunctionDefinition -> VType
-funDefToVType (FunctionDefinition ret _ args body env) =
-  VFun { fArgs = args, fBody = body, fEnv = env, fRet = ret }
-
 getById :: Ident -> InterpretMonad VType
 getById ident = do
   env <- ask
@@ -107,12 +103,16 @@ getById ident = do
   case (var, f) of
     ((Just loc), _) -> do
       state <- getStorage CMS.get
-      let (Just v) = M.lookup loc state
+      v     <- getOrError (M.lookup loc state) VariableNotInitialized
       return v
     (_, (Just f)) -> do
       return $ funDefToVType f
+    _ -> throwError VariableNotInitialized
 
-declareFunction :: Ident -> InterpretMonad Env
-declareFunction ident = do
+getOrError :: Maybe a -> RuntimeError -> InterpretMonad a
+getOrError maybeVal error = maybe (throwError error) return maybeVal
+
+shadowName :: Ident -> InterpretMonad Env
+shadowName ident = do
   env <- ask
   return env { vEnv = M.delete ident (vEnv env) }

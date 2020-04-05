@@ -1,4 +1,7 @@
-module TypeChecker.Runner where
+module TypeChecker.Runner
+  ( execTypeCheckerMonad
+  )
+where
 import           Samoyeet.Abs
 import           Control.Monad.State           as CMS
 import           Control.Monad.Reader
@@ -27,7 +30,7 @@ errorsHandler error = do
   addPrefix = (++) "Type error: "
   go (TypeMismatch actual expected) =
     "expected any of " ++ (show expected) ++ ", actual type " ++ (show actual)
-  go (NotInitialized idn) = "Variable" ++ (show idn) ++ "not initialized"
+  go (NotInitialized idn)           = show idn ++ " not initialized"
   go WrongNumberOfArguments = "Wrong number of arguments passed to function"
   go FunctionBodyDoesNotReturnValue = "Function does not return value"
   go (OutsideOfLoop _         )     = "Statement outside of loop"

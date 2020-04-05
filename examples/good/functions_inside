@@ -10,4 +10,5 @@ int main () {
   return fun(10);
 }
 
+yeet(main());
 return main();

@@ -1,6 +1,5 @@
-int a;
 
 int fun(boolean a) {
-    boolean a;
+    int a;
     return 5;
 }

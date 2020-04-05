@@ -25,43 +25,38 @@ import Samoyeet.ErrM
   ',' { PT _ (TS _ 10) }
   '-' { PT _ (TS _ 11) }
   '--' { PT _ (TS _ 12) }
-  '.' { PT _ (TS _ 13) }
-  '.at(' { PT _ (TS _ 14) }
-  '.length()' { PT _ (TS _ 15) }
-  '/' { PT _ (TS _ 16) }
-  ':' { PT _ (TS _ 17) }
-  ';' { PT _ (TS _ 18) }
-  '<' { PT _ (TS _ 19) }
-  '<=' { PT _ (TS _ 20) }
-  '=' { PT _ (TS _ 21) }
-  '==' { PT _ (TS _ 22) }
-  '>' { PT _ (TS _ 23) }
-  '>=' { PT _ (TS _ 24) }
-  'Fun' { PT _ (TS _ 25) }
-  'List' { PT _ (TS _ 26) }
-  '[]' { PT _ (TS _ 27) }
-  'and' { PT _ (TS _ 28) }
-  'boolean' { PT _ (TS _ 29) }
-  'break;' { PT _ (TS _ 30) }
-  'continue;' { PT _ (TS _ 31) }
-  'do' { PT _ (TS _ 32) }
-  'else' { PT _ (TS _ 33) }
-  'false' { PT _ (TS _ 34) }
-  'for' { PT _ (TS _ 35) }
-  'from' { PT _ (TS _ 36) }
-  'if' { PT _ (TS _ 37) }
-  'int' { PT _ (TS _ 38) }
-  'or' { PT _ (TS _ 39) }
-  'push' { PT _ (TS _ 40) }
-  'return' { PT _ (TS _ 41) }
-  'string' { PT _ (TS _ 42) }
-  'to' { PT _ (TS _ 43) }
-  'true' { PT _ (TS _ 44) }
-  'void' { PT _ (TS _ 45) }
-  'while' { PT _ (TS _ 46) }
-  'yeet' { PT _ (TS _ 47) }
-  '{' { PT _ (TS _ 48) }
-  '}' { PT _ (TS _ 49) }
+  '/' { PT _ (TS _ 13) }
+  ':' { PT _ (TS _ 14) }
+  ';' { PT _ (TS _ 15) }
+  '<' { PT _ (TS _ 16) }
+  '<=' { PT _ (TS _ 17) }
+  '=' { PT _ (TS _ 18) }
+  '==' { PT _ (TS _ 19) }
+  '>' { PT _ (TS _ 20) }
+  '>=' { PT _ (TS _ 21) }
+  'Fun' { PT _ (TS _ 22) }
+  '[]' { PT _ (TS _ 23) }
+  'and' { PT _ (TS _ 24) }
+  'boolean' { PT _ (TS _ 25) }
+  'break;' { PT _ (TS _ 26) }
+  'continue;' { PT _ (TS _ 27) }
+  'do' { PT _ (TS _ 28) }
+  'else' { PT _ (TS _ 29) }
+  'false' { PT _ (TS _ 30) }
+  'for' { PT _ (TS _ 31) }
+  'from' { PT _ (TS _ 32) }
+  'if' { PT _ (TS _ 33) }
+  'int' { PT _ (TS _ 34) }
+  'or' { PT _ (TS _ 35) }
+  'return' { PT _ (TS _ 36) }
+  'string' { PT _ (TS _ 37) }
+  'to' { PT _ (TS _ 38) }
+  'true' { PT _ (TS _ 39) }
+  'void' { PT _ (TS _ 40) }
+  'while' { PT _ (TS _ 41) }
+  'yeet' { PT _ (TS _ 42) }
+  '{' { PT _ (TS _ 43) }
+  '}' { PT _ (TS _ 44) }
 
   L_ident {PT _ (TV $$)}
   L_integ {PT _ (TI $$)}
@@ -191,9 +186,6 @@ Stmt :: {
 | SType Ident '(' ListArg ')' Block {
   Samoyeet.Abs.SFnDef $1 $2 $4 $6 
 }
-| Ident '.' 'push' '(' Expr ')' {
-  Samoyeet.Abs.ListPush $1 $5 
-}
 
 Item :: {
   Item 
@@ -229,9 +221,6 @@ SType :: {
 }
 | 'void' {
   Samoyeet.Abs.Void 
-}
-| 'List' '<' SType '>' {
-  Samoyeet.Abs.TList $3 
 }
 | 'Fun' '<' SType '(' ListMaybeRefType ')' '>' {
   Samoyeet.Abs.Fun $3 $5 
@@ -273,25 +262,6 @@ ListSType :: {
   (:) $1 $3 
 }
 
-Expr5 :: {
-  Expr 
-}
-: Expr6 '.length()' {
-  Samoyeet.Abs.ListLength $1 
-}
-| Expr6 '.at(' Expr6 ')' {
-  Samoyeet.Abs.ListAt $1 $3 
-}
-| '-' Expr6 {
-  Samoyeet.Abs.Neg $2 
-}
-| '!' Expr6 {
-  Samoyeet.Abs.Not $2 
-}
-| Expr6 {
-  $1 
-}
-
 Expr6 :: {
   Expr 
 }
@@ -315,6 +285,19 @@ Expr6 :: {
 }
 | '(' Expr ')' {
   $2 
+}
+
+Expr5 :: {
+  Expr 
+}
+: '-' Expr6 {
+  Samoyeet.Abs.Neg $2 
+}
+| '!' Expr6 {
+  Samoyeet.Abs.Not $2 
+}
+| Expr6 {
+  $1 
 }
 
 Expr4 :: {

@@ -1,11 +1,14 @@
-module Interpreter.Statements where
-import           Interpreter.Environments
+module Interpreter.Interpreter
+  ( execStatementsM
+  )
+where
+import           Interpreter.Environment
 import           Control.Monad.State           as CMS
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Except
 import           Samoyeet.Abs
-import           Interpreter.ValueTypes
+import           Interpreter.Types
 import qualified Data.Map                      as M
 import           Interpreter.RuntimeError
 
@@ -35,8 +38,9 @@ evaluateExprM (EVar var       ) = getById var
 evaluateExprM (EApp name exprs) = do
   pEnv    <- asks pEnv
   currEnv <- ask
-  let (Just (FunctionDefinition _ _ args b@(Block stmts) envF)) =
-        M.lookup name pEnv
+  (FunctionDefinition _ _ args b@(Block stmts) envF) <- getOrError
+    (M.lookup name pEnv)
+    VariableNotInitialized
   let argExpr = args `zip` exprs
   envAfterVDecl <- local (const envF) $ dispatcher argExpr currEnv
   envAfterFDecl <- local (const envAfterVDecl) $ execStatementsM stmts
@@ -53,11 +57,12 @@ evaluateExprM (EApp name exprs) = do
         let envF = declareFunWithEnv ret name args body env curEnv
         local (const envF) $ dispatcher xs evalEnv
       _ -> do
-        env <- putVal name val
+        env <- putValInit name val
         local (const env) $ dispatcher xs evalEnv
   dispatcher (((RefArg _ name), (EVar calledWith)) : xs) evalEnv = do
-    let (Just loc) = M.lookup calledWith $ vEnv evalEnv
-    local (putValInEnv name loc) $ dispatcher xs evalEnv
+    loc <- getOrError (M.lookup calledWith $ vEnv evalEnv)
+                      VariableNotInitialized
+    local (putVal name loc) $ dispatcher xs evalEnv
 
 execStatementM :: Stmt -> InterpretMonad Env
 execStatementM (Ret expr) = do
@@ -76,7 +81,7 @@ execStatementM (SContinue) = do
   return $ changeRetType VContinue env
 execStatementM (Decl _           []                  ) = ask
 execStatementM (Decl t@(Fun _ _) ((NoInit name) : xs)) = do
-  env <- declareFunction name
+  env <- shadowName name
   local (const env) $ execStatementM (Decl t xs)
 execStatementM (Decl t ((NoInit name) : xs)) = do
   env <- putValNoInit name
@@ -88,7 +93,7 @@ execStatementM (Decl t@(Fun _ _) ((Init name expr) : xs)) = do
   local (const modifiedEnv) $ execStatementM (Decl t xs)
 execStatementM (Decl t ((Init name expr) : xs)) = do
   val <- evaluateExprM expr
-  env <- putVal name val
+  env <- putValInit name val
   local (const env) $ execStatementM (Decl t xs)
 execStatementM (Print expr) = do
   val <- evaluateExprM expr
@@ -102,7 +107,7 @@ execStatementM (Ass name expr) = do
       return $ declareFunWithEnv ret name args body env curEnv
     _ -> do
       env <- asks vEnv
-      let (Just loc) = M.lookup name env
+      loc <- getOrError (M.lookup name env) VariableNotInitialized
       CMS.modify (putValInAddr val loc)
       return $ curEnv
 execStatementM (Incr name) = addToVar name 1
@@ -137,11 +142,11 @@ execStatementM (SFnDef retType name args block) = do
 
 addToVar :: Ident -> Integer -> InterpretMonad Env
 addToVar name toAdd = do
-  env <- asks vEnv
-  let (Just loc) = M.lookup name env
+  env   <- asks vEnv
+  loc   <- getOrError (M.lookup name env) VariableNotInitialized
   state <- CMS.get
-  let (Just val) = M.lookup loc (storage state)
-  let inc        = myPlus val (VInt toAdd)
+  val   <- getOrError (M.lookup loc (storage state)) VariableNotInitialized
+  let inc = myPlus val (VInt toAdd)
   CMS.modify (putValInAddr inc loc)
   ask
 

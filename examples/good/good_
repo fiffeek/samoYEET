@@ -10,3 +10,4 @@ void fun(int y) {
 }
 
 fun(5);
+yeet(c);

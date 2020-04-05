@@ -67,8 +67,6 @@ Bool.     SType ::= "boolean" ;
 
 Void.     SType ::= "void" ;
 
-TList.     SType ::= "List" "<" SType ">" ;
-
 Fun.       SType ::= "Fun" "<" SType "(" [MaybeRefType] ")" ">" ;
 
 NoRef.     MaybeRefType ::= SType ;
@@ -78,14 +76,6 @@ JustRef.   MaybeRefType ::= SType "&" ;
 separator  MaybeRefType "," ;
 
 separator  SType "," ;
-
--- List Operations -----------------------------------------
-
-ListPush.  Stmt ::= Ident "." "push" "(" Expr ")" ;
-
-ListLength.Expr5 ::= Expr6 ".length()" ;
-
-ListAt.    Expr5 ::= Expr6 ".at(" Expr6 ")" ;
 
 
 -- Expressions ---------------------------------------------

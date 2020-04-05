@@ -23,7 +23,7 @@ import           Samoyeet.Abs
 
 
 import           Samoyeet.ErrM
-import           Interpreter.Evaluate           ( execInterpretMonad )
+import           Interpreter.Runner             ( execInterpretMonad )
 import           TypeChecker.Runner             ( execTypeCheckerMonad )
 
 import           Data.Maybe
@@ -64,8 +64,3 @@ main = do
   dispatch parsed
     | isJust . maybeHelp $ parsed = usage parsed
     | otherwise = mapM_ (runFile parsed pProgram) (getFiles parsed)
-
-
-
-
-

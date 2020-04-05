@@ -117,7 +117,6 @@ instance Print Stmt where
     For id expr1 expr2 stmt -> prPrec i 0 (concatD [doc (showString "for"), prt 0 id, doc (showString "from"), prt 0 expr1, doc (showString "to"), prt 0 expr2, doc (showString "do"), prt 0 stmt])
     Print expr -> prPrec i 0 (concatD [doc (showString "yeet"), prt 0 expr, doc (showString ";")])
     SFnDef stype id args block -> prPrec i 0 (concatD [prt 0 stype, prt 0 id, doc (showString "("), prt 0 args, doc (showString ")"), prt 0 block])
-    ListPush id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "."), doc (showString "push"), doc (showString "("), prt 0 expr, doc (showString ")")])
   prtList _ [] = (concatD [])
   prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
 instance Print Item where
@@ -132,7 +131,6 @@ instance Print SType where
     Str -> prPrec i 0 (concatD [doc (showString "string")])
     Bool -> prPrec i 0 (concatD [doc (showString "boolean")])
     Void -> prPrec i 0 (concatD [doc (showString "void")])
-    TList stype -> prPrec i 0 (concatD [doc (showString "List"), doc (showString "<"), prt 0 stype, doc (showString ">")])
     Fun stype maybereftypes -> prPrec i 0 (concatD [doc (showString "Fun"), doc (showString "<"), prt 0 stype, doc (showString "("), prt 0 maybereftypes, doc (showString ")"), doc (showString ">")])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
@@ -146,8 +144,6 @@ instance Print MaybeRefType where
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
 instance Print Expr where
   prt i e = case e of
-    ListLength expr -> prPrec i 5 (concatD [prt 6 expr, doc (showString ".length()")])
-    ListAt expr1 expr2 -> prPrec i 5 (concatD [prt 6 expr1, doc (showString ".at("), prt 6 expr2, doc (showString ")")])
     EVar id -> prPrec i 6 (concatD [prt 0 id])
     ELitInt n -> prPrec i 6 (concatD [prt 0 n])
     ELitTrue -> prPrec i 6 (concatD [doc (showString "true")])

@@ -41,7 +41,6 @@ transStmt x = case x of
   For ident expr1 expr2 stmt -> failure x
   Print expr -> failure x
   SFnDef stype ident args block -> failure x
-  ListPush ident expr -> failure x
 transItem :: Item -> Result
 transItem x = case x of
   NoInit ident -> failure x
@@ -52,7 +51,6 @@ transSType x = case x of
   Str -> failure x
   Bool -> failure x
   Void -> failure x
-  TList stype -> failure x
   Fun stype maybereftypes -> failure x
 transMaybeRefType :: MaybeRefType -> Result
 transMaybeRefType x = case x of
@@ -60,8 +58,6 @@ transMaybeRefType x = case x of
   JustRef stype -> failure x
 transExpr :: Expr -> Result
 transExpr x = case x of
-  ListLength expr -> failure x
-  ListAt expr1 expr2 -> failure x
   EVar ident -> failure x
   ELitInt integer -> failure x
   ELitTrue -> failure x

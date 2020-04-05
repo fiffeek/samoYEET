@@ -35,23 +35,19 @@ data Stmt
     | For Ident Expr Expr Stmt
     | Print Expr
     | SFnDef SType Ident [Arg] Block
-    | ListPush Ident Expr
   deriving (Eq, Ord, Show, Read)
 
 data Item = NoInit Ident | Init Ident Expr
   deriving (Eq, Ord, Show, Read)
 
-data SType
-    = Int | Str | Bool | Void | TList SType | Fun SType [MaybeRefType]
+data SType = Int | Str | Bool | Void | Fun SType [MaybeRefType]
   deriving (Eq, Ord, Show, Read)
 
 data MaybeRefType = NoRef SType | JustRef SType
   deriving (Eq, Ord, Show, Read)
 
 data Expr
-    = ListLength Expr
-    | ListAt Expr Expr
-    | EVar Ident
+    = EVar Ident
     | ELitInt Integer
     | ELitTrue
     | ELitFalse

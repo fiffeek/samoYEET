@@ -1,2 +1,0 @@
-int main () { yeet("hello world") ; return 0 ; }
-main();

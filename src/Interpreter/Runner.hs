@@ -1,14 +1,17 @@
-module Interpreter.Evaluate where
-import           Interpreter.Environments
+module Interpreter.Runner
+  ( execInterpretMonad
+  )
+where
+import           Interpreter.Environment
 import           Control.Monad.State           as CMS
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Except
 import           Samoyeet.Abs
-import           Interpreter.ValueTypes
+import           Interpreter.Types
 import qualified Data.Map                      as M
 import           Interpreter.RuntimeError
-import           Interpreter.Statements
+import           Interpreter.Interpreter
 import           System.IO
 import           System.Exit
 
@@ -22,9 +25,10 @@ errorsHandler error = do
   exitFailure
  where
   addPrefix = (++) "Error: "
-  go DivisionByZero   = "Division by zero"
-  go ValueNotReturned = "Function did not return a value"
-  go _                = "Unknown error"
+  go DivisionByZero         = "Division by zero"
+  go ValueNotReturned       = "Function did not return a value"
+  go VariableNotInitialized = "Variable not initialized"
+  go _                      = "Unknown error"
 
 runInterpretMonad :: Env -> Store -> InterpretMonad Env -> IO ()
 runInterpretMonad env state m = do

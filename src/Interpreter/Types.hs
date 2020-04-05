@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Interpreter.ValueTypes where
+module Interpreter.Types where
 
 import qualified Data.Map                      as M
 import           Samoyeet.Abs
@@ -39,13 +39,14 @@ data VType = VInt Integer
   | VContinue
   | VFun { fArgs:: [Arg], fBody :: Block, fEnv :: Env, fRet :: SType }
 
+funDefToVType :: FunctionDefinition -> VType
+funDefToVType (FunctionDefinition ret _ args body env) =
+  VFun { fArgs = args, fBody = body, fEnv = env, fRet = ret }
+
 instance Show VType where
-  show VVoid       = "void"
-  show VNone       = "none"
   show (VInt  val) = show val
-  show (VStr  val) = show val
+  show (VStr  val) = filter (/= '"') $ show val
   show (VBool val) = show val
-  show VBreak      = "break"
 
 instance Eq VType where
   (VInt  left) == (VInt  right) = left == right
