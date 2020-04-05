@@ -24,7 +24,7 @@ import           Samoyeet.Abs
 
 import           Samoyeet.ErrM
 import           Interpreter.Evaluate           ( execInterpretMonad )
-import           TypeChecker.TypeCheckerRunner  ( execTypeCheckerMonad )
+import           TypeChecker.Runner             ( execTypeCheckerMonad )
 
 import           Data.Maybe
 import           Common.Utils

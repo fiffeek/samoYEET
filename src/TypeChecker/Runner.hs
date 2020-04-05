@@ -1,4 +1,4 @@
-module TypeChecker.TypeCheckerRunner where
+module TypeChecker.Runner where
 import           Samoyeet.Abs
 import           Control.Monad.State           as CMS
 import           Control.Monad.Reader
