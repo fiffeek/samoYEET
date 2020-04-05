@@ -1,0 +1,7 @@
+void fun(int& a) {
+    a++;
+    return;
+}
+
+int a;
+fun(a);

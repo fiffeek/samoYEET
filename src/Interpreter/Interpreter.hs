@@ -43,9 +43,9 @@ evaluateExprM (EApp name exprs) = do
     VariableNotInitialized
   let argExpr = args `zip` exprs
   envAfterVDecl <- local (const envF) $ dispatcher argExpr currEnv
-  envAfterFDecl <- local (const envAfterVDecl) $ execStatementsM stmts
-  when (vtype envAfterFDecl == VNone) $ throwError ValueNotReturned
-  return (vtype envAfterFDecl)
+  executeBlock  <- local (const envAfterVDecl) $ execStatementsM stmts
+  when (vtype executeBlock == VNone) $ throwError ValueNotReturned
+  return (vtype executeBlock)
  where
   dispatcher :: [(Arg, Expr)] -> Env -> InterpretMonad Env
   dispatcher []                          _       = ask
@@ -65,40 +65,28 @@ evaluateExprM (EApp name exprs) = do
     local (putVal name loc) $ dispatcher xs evalEnv
 
 execStatementM :: Stmt -> InterpretMonad Env
-execStatementM (Ret expr) = do
-  liftM2 changeRetType (evaluateExprM expr) ask
-execStatementM (VRet) = do
-  env <- ask
-  return $ changeRetType VVoid env
-execStatementM (BStmt (Block stmts)) = do
+execStatementM (Ret expr) = liftM2 changeRetType (evaluateExprM expr) ask
+execStatementM (BStmt (Block stmts)) =
   liftM2 flushVariables ask (execStatementsM stmts)
-execStatementM (Empty ) = ask
-execStatementM (SBreak) = do
-  env <- ask
-  return $ changeRetType VBreak env
-execStatementM (SContinue) = do
-  env <- ask
-  return $ changeRetType VContinue env
-execStatementM (Decl _           []                  ) = ask
-execStatementM (Decl t@(Fun _ _) ((NoInit name) : xs)) = do
-  env <- shadowName name
-  local (const env) $ execStatementM (Decl t xs)
+execStatementM (Empty    ) = ask
+execStatementM (VRet     ) = ask >>= return . changeRetType VVoid
+execStatementM (SBreak   ) = ask >>= return . changeRetType VBreak
+execStatementM (SContinue) = ask >>= return . changeRetType VContinue
+execStatementM (Decl _ []) = ask
+execStatementM (Decl t@(Fun _ _) ((NoInit name) : xs)) =
+  local (shadowName name) $ execStatementM (Decl t xs)
 execStatementM (Decl t ((NoInit name) : xs)) = do
   env <- putValNoInit name
   local (const env) $ execStatementM (Decl t xs)
 execStatementM (Decl t@(Fun _ _) ((Init name expr) : xs)) = do
   (VFun args body env ret) <- evaluateExprM expr
-  curEnv                   <- ask
-  let modifiedEnv = declareFunWithEnv ret name args body env curEnv
-  local (const modifiedEnv) $ execStatementM (Decl t xs)
+  local (declareFunWithEnv ret name args body env) $ execStatementM (Decl t xs)
 execStatementM (Decl t ((Init name expr) : xs)) = do
   val <- evaluateExprM expr
   env <- putValInit name val
   local (const env) $ execStatementM (Decl t xs)
-execStatementM (Print expr) = do
-  val <- evaluateExprM expr
-  liftIO . putStrLn . show $ val
-  ask
+execStatementM (Print expr) =
+  evaluateExprM expr >>= liftIO . putStrLn . show >> ask
 execStatementM (Ass name expr) = do
   val    <- evaluateExprM expr
   curEnv <- ask
@@ -110,11 +98,9 @@ execStatementM (Ass name expr) = do
       loc <- getOrError (M.lookup name env) VariableNotInitialized
       CMS.modify (putValInAddr val loc)
       return $ curEnv
-execStatementM (Incr name) = addToVar name 1
-execStatementM (Decr name) = addToVar name (-1)
-execStatementM (SExp expr) = do
-  evaluateExprM expr
-  ask
+execStatementM (Incr name                ) = addToVar name 1
+execStatementM (Decr name                ) = addToVar name (-1)
+execStatementM (SExp expr                ) = evaluateExprM expr >> ask
 execStatementM (Cond expr stmt) = execStatementM (CondElse expr stmt Empty)
 execStatementM (CondElse expr stmt1 stmt2) = do
   val <- evaluateExprM expr
@@ -125,9 +111,7 @@ execStatementM (CondElse expr stmt1 stmt2) = do
 execStatementM loop@(While expr stmt) = do
   val <- evaluateExprM expr
   if val == (VBool True)
-    then do
-      env <- execStatementM stmt
-      matchReturnType env (execStatementM loop)
+    then execStatementM stmt >>= flip matchReturnType (execStatementM loop)
     else ask
  where
   matchReturnType :: Env -> InterpretMonad Env -> InterpretMonad Env
@@ -153,10 +137,9 @@ addToVar name toAdd = do
 execStatementsM :: [Stmt] -> InterpretMonad Env
 execStatementsM []       = ask
 execStatementsM (x : []) = execStatementM x
-execStatementsM (x : xs) = do
-  env <- execStatementM x
-  statementValueDispatcher env (execStatementsM xs)
-
-statementValueDispatcher :: Env -> InterpretMonad Env -> InterpretMonad Env
-statementValueDispatcher env@(Env _ _ VNone) stmts = local (const env) stmts
-statementValueDispatcher env                 _     = return env
+execStatementsM (x : xs) = execStatementM x
+  >>= flip statementValueDispatcher (execStatementsM xs)
+ where
+  statementValueDispatcher :: Env -> InterpretMonad Env -> InterpretMonad Env
+  statementValueDispatcher env@(Env _ _ VNone) stmts = local (const env) stmts
+  statementValueDispatcher env                 _     = return env

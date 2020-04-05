@@ -32,6 +32,7 @@ errorsHandler error = do
     "expected any of " ++ (show expected) ++ ", actual type " ++ (show actual)
   go (NotInitialized idn)           = show idn ++ " not initialized"
   go WrongNumberOfArguments = "Wrong number of arguments passed to function"
+  go (BadReference) = "Bad reference, referenced lvalue instead of rvalue"
   go FunctionBodyDoesNotReturnValue = "Function does not return value"
   go (OutsideOfLoop _         )     = "Statement outside of loop"
   go (FunctionNotReferenceable)     = "Functions are not referenceable"

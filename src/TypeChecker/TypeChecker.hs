@@ -45,51 +45,55 @@ functionReturnTypes = varPossibleTypes ++ [Void]
 possiblePrintTypes = varPossibleTypes
 
 ensureLoopExists :: Stmt -> Env -> TypeCheckerMonad ()
-ensureLoopExists s e = do
+ensureLoopExists s e =
   unless (loopsOnStack e > 0) . throwError $ OutsideOfLoop s
 
-checkFunction :: SType -> [SType] -> TypeCheckerMonad SType
-checkFunction (Fun retType args) passedArgs = do
-  ensureLength args passedArgs
+checkFunction :: SType -> [Expr] -> TypeCheckerMonad SType
+checkFunction (Fun retType args) exprs = do
+  ensureLength args exprs
+  passedArgs <- sequence $ map typeCheckExpr exprs
+  let passedWithExpr       = args `zip` exprs
   let passedWithActualType = passedArgs `zip` (map maybeRefToSType args)
   sequence_ $ map (uncurry ensureType) passedWithActualType
+  sequence_ $ map (uncurry ensureReference) passedWithExpr
   return retType
  where
+  ensureReference :: MaybeRefType -> Expr -> TypeCheckerMonad ()
+  ensureReference (JustRef t) (EVar x) = return ()
+  ensureReference (JustRef _) _        = throwError BadReference
+  ensureReference _           _        = return ()
+
   ensureLength :: [a] -> [b] -> TypeCheckerMonad ()
-  ensureLength t1 t2 = do
+  ensureLength t1 t2 =
     unless (length t1 == length t2) . throwError $ WrongNumberOfArguments
 checkFunction _ _ = throwError NotAFunction
 
 typeCheckExpr :: Expr -> TypeCheckerMonad SType
-typeCheckExpr (ELitInt _             ) = return Int
-typeCheckExpr (ELitTrue              ) = return Bool
-typeCheckExpr (ELitFalse             ) = return Bool
-typeCheckExpr (EString _             ) = return Str
+-- ident here does not matter, env returned is discarded
+-- anyway, user is not able to declare `[]` as variable
 typeCheckExpr (ELambda args ret block) = do
   typeCheckStmtM (SFnDef ret (Ident "[]") args block)
   return $ Fun ret (map argToRefType args)
-typeCheckExpr (Neg v) = do
-  t <- typeCheckExpr v
-  ensureType (Int) t
-typeCheckExpr (Not v) = do
-  t <- typeCheckExpr v
-  ensureType (Bool) t
+typeCheckExpr (ELitInt _            ) = return Int
+typeCheckExpr (ELitTrue             ) = return Bool
+typeCheckExpr (ELitFalse            ) = return Bool
+typeCheckExpr (EString _            ) = return Str
+typeCheckExpr (Neg     v            ) = typeCheckExpr v >>= ensureType (Int)
+typeCheckExpr (Not     v            ) = typeCheckExpr v >>= ensureType (Bool)
 typeCheckExpr (EMul left op    right) = ensureExprTypes left right [Int]
 typeCheckExpr (EAdd left Plus  right) = ensureExprTypes left right [Int, Str]
 typeCheckExpr (EAdd left Minus right) = ensureExprTypes left right [Int]
-typeCheckExpr (ERel left _     right) = do
-  ensureExprTypes left right comparableTypes
-  return Bool
-typeCheckExpr (EAnd left right) = ensureExprTypes left right [Bool]
-typeCheckExpr (EOr  left right) = ensureExprTypes left right [Bool]
-typeCheckExpr (EVar v         ) = do
+typeCheckExpr (EAnd left right      ) = ensureExprTypes left right [Bool]
+typeCheckExpr (EOr  left right      ) = ensureExprTypes left right [Bool]
+typeCheckExpr (ERel left _ right) =
+  ensureExprTypes left right comparableTypes >> return Bool
+typeCheckExpr (EVar v) = do
   env <- asks types
   getOrError (M.lookup v env) (NotInitialized v)
 typeCheckExpr (EApp name exprs) = do
-  env    <- asks types
-  t      <- getOrError (M.lookup name env) (NotInitialized name)
-  exprsT <- sequence $ map typeCheckExpr exprs
-  checkFunction t exprsT
+  env <- asks types
+  t   <- getOrError (M.lookup name env) (NotInitialized name)
+  checkFunction t exprs
 
 correct :: TypeCheckerMonad Env
 correct = do
@@ -106,17 +110,11 @@ typeCheckStmtM (VRet) = do
   env <- ask
   ensureReturnType (funRetType env) (Just Void)
   return $ overrideJustStatus Void env
-typeCheckStmtM (Empty     ) = correct
-typeCheckStmtM (Print expr) = do
-  t <- typeCheckExpr expr
-  ensureAnyType t possiblePrintTypes
-  correct
-typeCheckStmtM (SBreak) = do
-  env <- ask
-  ensureLoopExists SBreak env >> correct
-typeCheckStmtM (SContinue) = do
-  env <- ask
-  ensureLoopExists SContinue env >> correct
+typeCheckStmtM (Empty) = correct
+typeCheckStmtM (Print expr) =
+  typeCheckExpr expr >>= flip ensureAnyType possiblePrintTypes >> correct
+typeCheckStmtM (SBreak       ) = ask >>= ensureLoopExists SBreak >> correct
+typeCheckStmtM (SContinue    ) = ask >>= ensureLoopExists SContinue >> correct
 typeCheckStmtM (Ass name expr) = do
   env <- asks types
   t   <- getOrError (M.lookup name env) (NotInitialized name)
@@ -143,8 +141,7 @@ typeCheckStmtM (CondElse expr stmt1 stmt2) = do
                            (alternateStatus (status blockEnv1) env)
 typeCheckStmtM (Decl _ []                  ) = ask
 typeCheckStmtM (Decl t ((NoInit name) : xs)) = do
-  curEnv <- ask
-  env    <- putType name t curEnv
+  env <- ask >>= putType name t
   local (const env) $ typeCheckStmtM (Decl t xs)
 typeCheckStmtM (Decl t ((Init name expr) : xs)) = do
   curEnv <- ask

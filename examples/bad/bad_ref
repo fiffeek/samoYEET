@@ -1,0 +1,5 @@
+int fun(int& t) {
+    return 5;
+}
+
+fun(5);

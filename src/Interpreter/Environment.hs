@@ -112,7 +112,5 @@ getById ident = do
 getOrError :: Maybe a -> RuntimeError -> InterpretMonad a
 getOrError maybeVal error = maybe (throwError error) return maybeVal
 
-shadowName :: Ident -> InterpretMonad Env
-shadowName ident = do
-  env <- ask
-  return env { vEnv = M.delete ident (vEnv env) }
+shadowName :: Ident -> Env -> Env
+shadowName ident env = env { vEnv = M.delete ident (vEnv env) }

@@ -10,4 +10,5 @@ data TypeError = NotAFunction
   | FunctionNotReferenceable
   | ConflictingDeclarations
   | Redeclaration
+  | BadReference
   | UnknownError deriving Show
