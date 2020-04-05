@@ -10,14 +10,19 @@ import           TypeChecker.TypeChecker
 import           TypeChecker.TypeError
 import           TypeChecker.Environment
 import           Common.CommandLineHelpers
-
+import           System.IO
+import           System.Exit                    ( exitFailure
+                                                , exitSuccess
+                                                )
 
 execTypeCheckerMonad :: CommandLineArguments -> [Stmt] -> IO () -> IO ()
 execTypeCheckerMonad cla stmts =
   runTypeCheckerMonad initialEnvironment (typeCheckStmtsM stmts)
 
 errorsHandler :: TypeError -> IO ()
-errorsHandler error = putStrLn . addPrefix . go $ error
+errorsHandler error = do
+  hPutStrLn stderr . addPrefix . go $ error
+  exitFailure
  where
   addPrefix = (++) "Type error: "
   go (TypeMismatch actual expected) =
@@ -25,7 +30,7 @@ errorsHandler error = putStrLn . addPrefix . go $ error
   go (NotInitialized idn) = "variable = [" ++ (show idn) ++ "] not initialized"
   go WrongNumberOfArguments         = "wrong number of arguments"
   go FunctionBodyDoesNotReturnValue = "f"
-  go _                              = "som error"
+  go _                              = "Unknown error"
 
 runTypeCheckerMonad :: Env -> TypeCheckerMonad Env -> IO () -> IO ()
 runTypeCheckerMonad env m cont = do

@@ -1,2 +1,2 @@
-int main () { printString("hello world") ; return 0 ; }
+int main () { yeet("hello world") ; return 0 ; }
 main();

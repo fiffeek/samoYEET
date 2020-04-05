@@ -34,7 +34,7 @@ import           Common.Logging
 type ParseFun = [Token] -> Err Program
 
 runFile :: CommandLineArguments -> ParseFun -> FilePath -> IO ()
-runFile cla p f = putStrLn f >> readFile f >>= run cla p
+runFile cla p f = readFile f >>= run cla p
 
 run :: CommandLineArguments -> ParseFun -> String -> IO ()
 run cla p s = parse (\tree -> typeCheck tree cla $ execInterpretMonad tree)

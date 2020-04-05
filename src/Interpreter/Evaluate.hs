@@ -10,13 +10,17 @@ import           Interpreter.ValueTypes
 import qualified Data.Map                      as M
 import           Interpreter.RuntimeError
 import           Interpreter.Statements
+import           System.IO
+import           System.Exit
 
 execInterpretMonad :: [Stmt] -> IO ()
 execInterpretMonad =
   runInterpretMonad initialEnvironment initialState . execStatementsM
 
 errorsHandler :: RuntimeError -> IO ()
-errorsHandler error = putStrLn . addPrefix . go $ error
+errorsHandler error = do
+  hPutStrLn stderr . addPrefix . go $ error
+  exitFailure
  where
   addPrefix = (++) "Error: "
   go VariableNotInitialized = "Variable was not initialized"
@@ -31,11 +35,11 @@ runInterpretMonad :: Env -> Store -> InterpretMonad Env -> IO ()
 runInterpretMonad env state m = do
   ans <- e
   case ans of
-    Left  err               -> errorsHandler $ err
-    Right env@(Env _ _ val) -> do
-      putStrLn $ show . vEnv $ env
-      putStrLn $ returnProgram val
-      pure ()
+    Left  err                    -> errorsHandler $ err
+    Right env@(Env _ _ (VInt 0)) -> exitSuccess
+    Right env@(Env _ _ (VInt val)) ->
+      exitWith (ExitFailure . fromIntegral $ val) >> pure ()
+    Right env@(Env _ _ _) -> exitSuccess
  where
   r = runReaderT m env
   s = evalStateT r state
