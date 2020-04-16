@@ -40,23 +40,19 @@ import Samoyeet.ErrM
   'boolean' { PT _ (TS _ 25) }
   'break;' { PT _ (TS _ 26) }
   'continue;' { PT _ (TS _ 27) }
-  'do' { PT _ (TS _ 28) }
-  'else' { PT _ (TS _ 29) }
-  'false' { PT _ (TS _ 30) }
-  'for' { PT _ (TS _ 31) }
-  'from' { PT _ (TS _ 32) }
-  'if' { PT _ (TS _ 33) }
-  'int' { PT _ (TS _ 34) }
-  'or' { PT _ (TS _ 35) }
-  'return' { PT _ (TS _ 36) }
-  'string' { PT _ (TS _ 37) }
-  'to' { PT _ (TS _ 38) }
-  'true' { PT _ (TS _ 39) }
-  'void' { PT _ (TS _ 40) }
-  'while' { PT _ (TS _ 41) }
-  'yeet' { PT _ (TS _ 42) }
-  '{' { PT _ (TS _ 43) }
-  '}' { PT _ (TS _ 44) }
+  'else' { PT _ (TS _ 28) }
+  'false' { PT _ (TS _ 29) }
+  'if' { PT _ (TS _ 30) }
+  'int' { PT _ (TS _ 31) }
+  'or' { PT _ (TS _ 32) }
+  'return' { PT _ (TS _ 33) }
+  'string' { PT _ (TS _ 34) }
+  'true' { PT _ (TS _ 35) }
+  'void' { PT _ (TS _ 36) }
+  'while' { PT _ (TS _ 37) }
+  'yeet' { PT _ (TS _ 38) }
+  '{' { PT _ (TS _ 39) }
+  '}' { PT _ (TS _ 40) }
 
   L_ident {PT _ (TV $$)}
   L_integ {PT _ (TI $$)}
@@ -176,9 +172,6 @@ Stmt :: {
 }
 | Expr ';' {
   Samoyeet.Abs.SExp $1 
-}
-| 'for' Ident 'from' Expr 'to' Expr 'do' Stmt {
-  Samoyeet.Abs.For $2 $4 $6 $8 
 }
 | 'yeet' Expr ';' {
   Samoyeet.Abs.Print $2 

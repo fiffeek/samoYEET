@@ -32,10 +32,9 @@ except ``"`` unless preceded by ``\``.
 The set of reserved words is the set of terminals appearing in the grammar. Those reserved words that consist of non-letter characters are called symbols, and they are treated in a different way from those that are similar to identifiers. The lexer follows rules familiar from languages like Haskell, C, and Java, including longest match and spacing conventions.
 
 The reserved words used in samoyeet are the following:
-  | ``Fun`` | ``and`` | ``boolean`` | ``do``
-  | ``else`` | ``false`` | ``for`` | ``from``
-  | ``if`` | ``int`` | ``or`` | ``return``
-  | ``string`` | ``to`` | ``true`` | ``void``
+  | ``Fun`` | ``and`` | ``boolean`` | ``else``
+  | ``false`` | ``if`` | ``int`` | ``or``
+  | ``return`` | ``string`` | ``true`` | ``void``
   | ``while`` | ``yeet`` |  | 
 
 The symbols used in samoyeet are the following:
@@ -79,7 +78,6 @@ All other symbols are terminals.
   |  |  **|**  | ``break;`` 
   |  |  **|**  | ``continue;`` 
   |  |  **|**  | //Expr// ``;`` 
-  |  |  **|**  | ``for`` //Ident// ``from`` //Expr// ``to`` //Expr// ``do`` //Stmt// 
   |  |  **|**  | ``yeet`` //Expr// ``;`` 
   |  |  **|**  | //SType// //Ident// ``(`` //[Arg]// ``)`` //Block// 
   | //Item// | -> | //Ident// 

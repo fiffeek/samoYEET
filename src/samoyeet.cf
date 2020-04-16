@@ -50,8 +50,6 @@ SContinue. Stmt ::= "continue;" ;
 
 SExp.      Stmt ::= Expr  ";" ;
 
-For.       Stmt ::= "for" Ident "from" Expr "to" Expr "do" Stmt ;
-
 Print.     Stmt ::= "yeet" Expr ";" ;
 
 SFnDef.	   Stmt ::= SType Ident "(" [Arg] ")" Block ;

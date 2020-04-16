@@ -114,7 +114,6 @@ instance Print Stmt where
     SBreak -> prPrec i 0 (concatD [doc (showString "break;")])
     SContinue -> prPrec i 0 (concatD [doc (showString "continue;")])
     SExp expr -> prPrec i 0 (concatD [prt 0 expr, doc (showString ";")])
-    For id expr1 expr2 stmt -> prPrec i 0 (concatD [doc (showString "for"), prt 0 id, doc (showString "from"), prt 0 expr1, doc (showString "to"), prt 0 expr2, doc (showString "do"), prt 0 stmt])
     Print expr -> prPrec i 0 (concatD [doc (showString "yeet"), prt 0 expr, doc (showString ";")])
     SFnDef stype id args block -> prPrec i 0 (concatD [prt 0 stype, prt 0 id, doc (showString "("), prt 0 args, doc (showString ")"), prt 0 block])
   prtList _ [] = (concatD [])

@@ -38,7 +38,6 @@ transStmt x = case x of
   SBreak -> failure x
   SContinue -> failure x
   SExp expr -> failure x
-  For ident expr1 expr2 stmt -> failure x
   Print expr -> failure x
   SFnDef stype ident args block -> failure x
 transItem :: Item -> Result

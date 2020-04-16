@@ -32,7 +32,6 @@ data Stmt
     | SBreak
     | SContinue
     | SExp Expr
-    | For Ident Expr Expr Stmt
     | Print Expr
     | SFnDef SType Ident [Arg] Block
   deriving (Eq, Ord, Show, Read)
