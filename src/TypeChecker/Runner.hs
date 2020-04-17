@@ -20,9 +20,9 @@ import           System.Exit                    ( exitFailure
 import           TypeChecker.ReturnChecker
 
 execTypeCheckerMonad :: CommandLineArguments -> [Stmt] -> IO () -> IO ()
-execTypeCheckerMonad cla stmts cont = do
+execTypeCheckerMonad cla stmts =
   runTypeCheckerMonad initialEnvironment (typeCheckStmtsM stmts)
-    $ runTypeCheckerMonad initialEnvironment (returnCheckStmtsM stmts) cont
+    . runTypeCheckerMonad initialEnvironment (returnCheckStmtsM stmts)
 
 errorsHandler :: TypeError -> IO ()
 errorsHandler error = do
