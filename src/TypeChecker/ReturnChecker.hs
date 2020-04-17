@@ -1,0 +1,39 @@
+module TypeChecker.ReturnChecker where
+import           Samoyeet.Abs
+import           Control.Monad.State           as CMS
+import           Control.Monad.Reader
+import           Control.Monad.Trans.Maybe
+import           Control.Monad.Except
+import qualified Data.Map                      as M
+import           Control.Applicative
+import           TypeChecker.Converter
+import           TypeChecker.Environment
+import           TypeChecker.TypeError
+
+returnCheckExprM :: Expr -> TypeCheckerMonad ()
+returnCheckExprM (ELambda args ret block) = do
+  returnCheckStmtM (SFnDef ret (Ident "[]") args block)
+  pure ()
+returnCheckExprM (EApp _ exprs) = sequence_ $ fmap returnCheckExprM exprs
+returnCheckExprM _              = pure ()
+
+returnCheckStmtM :: Stmt -> TypeCheckerMonad Bool
+returnCheckStmtM (Ret _) = return True
+returnCheckStmtM (VRet ) = return True
+returnCheckStmtM (CondElse _ stmt1 stmt2) =
+  liftM2 (&&) (returnCheckStmtM stmt1) (returnCheckStmtM stmt2)
+returnCheckStmtM (SFnDef _ _ _ block) = do
+  blockCheck <- returnCheckStmtM (BStmt block)
+  if not blockCheck then throwError ReturnMissing else return True
+returnCheckStmtM (BStmt (Block b)) = do
+  checked <- sequence $ fmap returnCheckStmtM b
+  return $ or checked
+returnCheckStmtM (Decl _ []) = return True
+returnCheckStmtM (Decl t ((Init _ expr) : xs)) =
+  returnCheckExprM expr >> returnCheckStmtM (Decl t xs) >> return True
+returnCheckStmtM (Ass _ expr) = returnCheckExprM expr >> return True
+returnCheckStmtM _            = return False
+
+
+returnCheckStmtsM :: [Stmt] -> TypeCheckerMonad ()
+returnCheckStmtsM stmts = sequence_ $ fmap returnCheckStmtM stmts

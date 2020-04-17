@@ -11,4 +11,5 @@ data TypeError = NotAFunction
   | ConflictingDeclarations
   | Redeclaration
   | BadReference
+  | ReturnMissing
   | UnknownError deriving Show

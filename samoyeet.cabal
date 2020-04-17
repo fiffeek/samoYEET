@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5a84d620712cb7c35c34097c080d2cac57e141896090ea22bbd05fcfb9940437
+-- hash: 0cef718e8f5100bbf64a870fa21552603f5b2eeda61cec9b85206f24db86acc1
 
 name:           samoyeet
 version:        0.1.0.0
@@ -46,6 +46,7 @@ library
       TypeChecker.Runner
       TypeChecker.TypeChecker
       TypeChecker.TypeError
+      TypeChecker.ReturnChecker
   other-modules:
       Paths_samoyeet
   hs-source-dirs:

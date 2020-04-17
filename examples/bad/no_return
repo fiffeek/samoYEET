@@ -1,0 +1,5 @@
+int fun() {
+    if (false) {
+        return 5;
+    }
+}

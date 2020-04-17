@@ -17,10 +17,12 @@ import           System.IO
 import           System.Exit                    ( exitFailure
                                                 , exitSuccess
                                                 )
+import           TypeChecker.ReturnChecker
 
 execTypeCheckerMonad :: CommandLineArguments -> [Stmt] -> IO () -> IO ()
-execTypeCheckerMonad cla stmts =
+execTypeCheckerMonad cla stmts cont = do
   runTypeCheckerMonad initialEnvironment (typeCheckStmtsM stmts)
+    $ runTypeCheckerMonad initialEnvironment (returnCheckStmtsM stmts) cont
 
 errorsHandler :: TypeError -> IO ()
 errorsHandler error = do
@@ -33,14 +35,15 @@ errorsHandler error = do
   go (NotInitialized idn)           = show idn ++ " not initialized"
   go WrongNumberOfArguments = "Wrong number of arguments passed to function"
   go (BadReference) = "Bad reference, referenced lvalue instead of rvalue"
-  go FunctionBodyDoesNotReturnValue = "Function does not return value"
+  go FunctionBodyDoesNotReturnValue = "Missing return in function body"
   go (OutsideOfLoop _         )     = "Statement outside of loop"
   go (FunctionNotReferenceable)     = "Functions are not referenceable"
   go (ConflictingDeclarations )     = "Redeclaration, conflicting types"
   go (Redeclaration           )     = "Redeclaration of variable"
+  go (ReturnMissing           )     = "Missing return in function body"
   go _                              = "Unknown error"
 
-runTypeCheckerMonad :: Env -> TypeCheckerMonad Env -> IO () -> IO ()
+runTypeCheckerMonad :: Env -> TypeCheckerMonad a -> IO () -> IO ()
 runTypeCheckerMonad env m cont = do
   ans <- e
   case ans of
