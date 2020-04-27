@@ -3,6 +3,7 @@ module TypeChecker.Runner
   )
 where
 import           Samoyeet.Abs
+import           Samoyeet.Print
 import           Control.Monad.State           as CMS
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Maybe
@@ -18,6 +19,7 @@ import           System.Exit                    ( exitFailure
                                                 , exitSuccess
                                                 )
 import           TypeChecker.ReturnChecker
+import           Common.Utils
 
 execTypeCheckerMonad :: CommandLineArguments -> [Stmt] -> IO () -> IO ()
 execTypeCheckerMonad cla stmts =
@@ -29,19 +31,32 @@ errorsHandler error = do
   hPutStrLn stderr . addPrefix . go $ error
   exitFailure
  where
-  addPrefix = (++) "Type error: "
-  go (TypeMismatch actual expected) =
-    "expected any of " ++ (show expected) ++ ", actual type " ++ (show actual)
-  go (NotInitialized idn)           = show idn ++ " not initialized"
-  go WrongNumberOfArguments = "Wrong number of arguments passed to function"
-  go (BadReference) = "Bad reference, referenced lvalue instead of rvalue"
-  go FunctionBodyDoesNotReturnValue = "Missing return in function body"
-  go (OutsideOfLoop _         )     = "Statement outside of loop"
-  go (FunctionNotReferenceable)     = "Functions are not referenceable"
-  go (ConflictingDeclarations )     = "Redeclaration, conflicting types"
-  go (Redeclaration           )     = "Redeclaration of variable"
-  go (ReturnMissing           )     = "Missing return in function body"
-  go _                              = "Unknown error"
+  addPrefix    = (++) "Type error: "
+  stripEndLine = filter (/= '\n')
+  addContext mess stmt =
+    concat [mess, " in\n `", stripEndLine . printTree $ stmt, "` \n"]
+  go (TypeMismatch actual expected context) = showTextSeq
+    [ addContext "type mismatch" context
+    , "expected any of"
+    , show expected
+    , "actual type"
+    , show actual
+    ]
+  go (NotInitialized idn context) =
+    showTextSeq [addContext ((show idn) ++ " not initialized") context]
+  go (WrongNumberOfArguments name) =
+    showTextSeq ["Wrong number of arguments passed to a", show name, "function"]
+  go (BadReference ref) = showTextSeq
+    [addContext "bad reference" ref, "referenced lvalue instead of rvalue"]
+  go (FunctionBodyDoesNotReturnValue name) =
+    showTextSeq ["Missing return in", show name, "function body"]
+  go (OutsideOfLoop stmt      ) = addContext "Statement outside of a loop" stmt
+  go (FunctionNotReferenceable) = "Functions are not referenceable"
+  go (ConflictingDeclarations idn stmt) =
+    addContext ("Redeclaration, conflicting types for " ++ (show idn)) stmt
+  go (Redeclaration idn stmt) = go (ConflictingDeclarations idn stmt)
+  go (ReturnMissing name    ) = go (FunctionBodyDoesNotReturnValue name)
+  go _                        = "Unknown error"
 
 runTypeCheckerMonad :: Env -> TypeCheckerMonad a -> IO () -> IO ()
 runTypeCheckerMonad env m cont = do

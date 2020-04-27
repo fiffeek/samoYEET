@@ -14,6 +14,8 @@ import           Interpreter.RuntimeError
 import           Interpreter.Interpreter
 import           System.IO
 import           System.Exit
+import           Common.Utils
+import           Samoyeet.Print
 
 execInterpretMonad :: [Stmt] -> IO ()
 execInterpretMonad =
@@ -25,20 +27,21 @@ errorsHandler error = do
   exitFailure
  where
   addPrefix = (++) "Error: "
-  go DivisionByZero         = "Division by zero"
-  go ValueNotReturned       = "Function did not return a value"
-  go VariableNotInitialized = "Variable not initialized"
-  go _                      = "Unknown error"
+  go DivisionByZero   = "Division by zero"
+  go ValueNotReturned = "Function did not return a value"
+  go (VariableNotInitialized name ctx) =
+    showTextSeq ["Variable", show name, "not initialized in", printTree ctx]
+  go _ = "Unknown error"
 
 runInterpretMonad :: Env -> Store -> InterpretMonad Env -> IO ()
 runInterpretMonad env state m = do
   ans <- e
   case ans of
-    Left  err                    -> errorsHandler $ err
-    Right env@(Env _ _ (VInt 0)) -> exitSuccess
-    Right env@(Env _ _ (VInt val)) ->
+    Left  err                  -> errorsHandler $ err
+    Right (Env _ _ (VInt 0) _) -> exitSuccess
+    Right (Env _ _ (VInt val) _) ->
       exitWith (ExitFailure . fromIntegral $ val) >> pure ()
-    Right env@(Env _ _ _) -> exitSuccess
+    Right (Env _ _ _ _) -> exitSuccess
  where
   r = runReaderT m env
   s = evalStateT r state

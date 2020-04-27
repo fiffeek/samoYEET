@@ -1,9 +1,7 @@
-# should type check normally
 int fun() {
     if (false) {
         return 5;
     }
 }
 
-# should throw runtime
 fun();

@@ -14,18 +14,25 @@ data Env = Env {
     status :: Maybe SType,
     funRetType :: Maybe SType,
     loopsOnStack :: Int,
-    blocksOnStack :: Int
+    blocksOnStack :: Int,
+    stmt :: Stmt
     } deriving Show
+
+
+putStmt :: Stmt -> TypeCheckerMonad a -> TypeCheckerMonad a
+putStmt stmt_ cont = local (\e -> e { stmt = stmt_ }) cont
 
 putType :: Ident -> SType -> Env -> TypeCheckerMonad Env
 putType ident t env = do
   let maybeType  = M.lookup ident (types env)
   let maybeScope = M.lookup ident (scope env)
   let tupled     = (,) <$> maybeType <*> maybeScope
+  stmt_ <- asks stmt
   case (tupled, (t, blocksOnStack env)) of
     ((Just (t1, s1)), (t2, s2)) -> do
-      when (and [s1 == s2, t1 /= t2]) $ throwError ConflictingDeclarations
-      when (and [s1 == s2, t1 == t2]) $ throwError Redeclaration
+      when (and [s1 == s2, t1 /= t2])
+        $ throwError (ConflictingDeclarations ident stmt_)
+      when (and [s1 == s2, t1 == t2]) $ throwError (Redeclaration ident stmt_)
     _ -> return ()
   return updatedEnv
  where
@@ -67,5 +74,6 @@ initialEnvironment = Env { types         = M.empty
                          , funRetType    = Just Int
                          , loopsOnStack  = 0
                          , blocksOnStack = 0
+                         , stmt          = Empty
                          }
 

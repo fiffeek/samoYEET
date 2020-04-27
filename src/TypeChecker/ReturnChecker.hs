@@ -22,9 +22,9 @@ returnCheckStmtM (Ret _) = return True
 returnCheckStmtM (VRet ) = return True
 returnCheckStmtM (CondElse _ stmt1 stmt2) =
   liftM2 (&&) (returnCheckStmtM stmt1) (returnCheckStmtM stmt2)
-returnCheckStmtM (SFnDef _ _ _ block) = do
+returnCheckStmtM (SFnDef _ name _ block) = do
   blockCheck <- returnCheckStmtM (BStmt block)
-  if not blockCheck then throwError ReturnMissing else return True
+  if not blockCheck then throwError $ ReturnMissing name else return False
 returnCheckStmtM (BStmt (Block b)) = do
   checked <- sequence $ fmap returnCheckStmtM b
   return $ or checked

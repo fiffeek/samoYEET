@@ -2,14 +2,14 @@ module TypeChecker.TypeError where
 import           Samoyeet.Abs
 
 data TypeError = NotAFunction
-  | TypeMismatch SType [SType]
-  | NotInitialized Ident
-  | FunctionBodyDoesNotReturnValue
+  | TypeMismatch SType [SType] Stmt
+  | NotInitialized Ident Stmt
+  | FunctionBodyDoesNotReturnValue Ident
   | OutsideOfLoop Stmt
-  | WrongNumberOfArguments
+  | WrongNumberOfArguments Ident
   | FunctionNotReferenceable
-  | ConflictingDeclarations
-  | Redeclaration
-  | BadReference
-  | ReturnMissing
+  | ConflictingDeclarations Ident Stmt
+  | Redeclaration Ident Stmt
+  | BadReference Stmt
+  | ReturnMissing Ident
   | UnknownError deriving Show

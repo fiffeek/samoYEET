@@ -7,6 +7,7 @@ import           Samoyeet.Abs
 import           Control.Monad
 import           Interpreter.RuntimeError
 import           Control.Monad.Except
+import           Control.Monad.Reader
 
 type MemAdr = Int
 data Store = Store {
@@ -19,7 +20,8 @@ type PEnv = M.Map Ident FunctionDefinition
 data Env = Env {
   vEnv :: VEnv,
   pEnv :: PEnv,
-  vtype :: VType
+  vtype :: VType,
+  context :: Stmt
 } deriving Show
 
 data FunctionDefinition = FunctionDefinition {
