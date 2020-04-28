@@ -1,18 +1,19 @@
 module TypeChecker.Converter where
 import           Samoyeet.Abs
+import           TypeChecker.Types
 
-argToSType :: Arg -> SType
-argToSType (Arg    t _) = t
-argToSType (RefArg t _) = t
+argToSType :: Arg a -> SType a
+argToSType (Arg    _ t _) = t
+argToSType (RefArg _ t _) = t
 
-argToRefType :: Arg -> MaybeRefType
-argToRefType (Arg    t _) = NoRef t
-argToRefType (RefArg t _) = JustRef t
+argToRefType :: Arg a -> MaybeRefType a
+argToRefType (Arg    l t _) = NoRef l t
+argToRefType (RefArg l t _) = JustRef l t
 
-argToNoInit :: Arg -> Stmt
-argToNoInit (Arg    t n) = Decl t [NoInit n]
-argToNoInit (RefArg t n) = Decl t [NoInit n]
+argToNoInit :: Arg a -> Stmt a
+argToNoInit (Arg    l t n) = Decl l t [NoInit l n]
+argToNoInit (RefArg l t n) = Decl l t [NoInit l n]
 
-maybeRefToSType :: MaybeRefType -> SType
-maybeRefToSType (NoRef   t) = t
-maybeRefToSType (JustRef t) = t
+maybeRefToSType :: MaybeRefType a -> SType a
+maybeRefToSType (NoRef   _ t) = t
+maybeRefToSType (JustRef _ t) = t

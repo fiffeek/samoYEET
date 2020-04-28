@@ -47,6 +47,7 @@ library
       TypeChecker.TypeChecker
       TypeChecker.TypeError
       TypeChecker.ReturnChecker
+      TypeChecker.Types
   other-modules:
       Paths_samoyeet
   hs-source-dirs:

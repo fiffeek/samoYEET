@@ -7,22 +7,23 @@ import           Control.Monad.Except
 import qualified Data.Map                      as M
 import           Control.Applicative
 import           TypeChecker.TypeError
+import           TypeChecker.Types
 
 data Env = Env {
-    types :: M.Map Ident SType,
+    types :: M.Map Ident TCSType,
     scope :: M.Map Ident Int,
-    status :: Maybe SType,
-    funRetType :: Maybe SType,
+    status :: Maybe TCSType,
+    funRetType :: Maybe TCSType,
     loopsOnStack :: Int,
     blocksOnStack :: Int,
-    stmt :: Stmt
+    stmt :: TCStmt
     } deriving Show
 
 
-putStmt :: Stmt -> TypeCheckerMonad a -> TypeCheckerMonad a
+putStmt :: TCStmt -> TypeCheckerMonad a -> TypeCheckerMonad a
 putStmt stmt_ cont = local (\e -> e { stmt = stmt_ }) cont
 
-putType :: Ident -> SType -> Env -> TypeCheckerMonad Env
+putType :: Ident -> TCSType -> Env -> TypeCheckerMonad Env
 putType ident t env = do
   let maybeType  = M.lookup ident (types env)
   let maybeScope = M.lookup ident (scope env)
@@ -41,10 +42,10 @@ putType ident t env = do
                    }
 
 
-alternateFunRetType :: Maybe SType -> Env -> Env
+alternateFunRetType :: Maybe TCSType -> Env -> Env
 alternateFunRetType t e = e { funRetType = t <|> funRetType e }
 
-putFunRetType :: SType -> Env -> Env
+putFunRetType :: TCSType -> Env -> Env
 putFunRetType t1 e = e { funRetType = Just t1 }
 
 putBlockOnStack :: Env -> Env
@@ -53,13 +54,13 @@ putBlockOnStack env = env { blocksOnStack = (+) 1 $ blocksOnStack env }
 removeBlockFromStack :: Env -> Env
 removeBlockFromStack env = env { blocksOnStack = (-) 1 $ blocksOnStack env }
 
-alternateStatus :: Maybe SType -> Env -> Env
+alternateStatus :: Maybe TCSType -> Env -> Env
 alternateStatus s e = e { status = status e <|> s }
 
-overrideStatus :: Maybe SType -> Env -> Env
+overrideStatus :: Maybe TCSType -> Env -> Env
 overrideStatus s e = e { status = s }
 
-overrideJustStatus :: SType -> Env -> Env
+overrideJustStatus :: TCSType -> Env -> Env
 overrideJustStatus s e = overrideStatus (Just s) e
 
 putLoopOnStack :: Env -> Env
@@ -71,9 +72,9 @@ initialEnvironment :: Env
 initialEnvironment = Env { types         = M.empty
                          , scope         = M.empty
                          , status        = Nothing
-                         , funRetType    = Just Int
+                         , funRetType    = Just (Int Nothing)
                          , loopsOnStack  = 0
                          , blocksOnStack = 0
-                         , stmt          = Empty
+                         , stmt          = Empty Nothing
                          }
 

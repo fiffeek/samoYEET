@@ -20,8 +20,9 @@ import           System.Exit                    ( exitFailure
                                                 )
 import           TypeChecker.ReturnChecker
 import           Common.Utils
+import           TypeChecker.Types
 
-execTypeCheckerMonad :: CommandLineArguments -> [Stmt] -> IO () -> IO ()
+execTypeCheckerMonad :: CommandLineArguments -> [TCStmt] -> IO () -> IO ()
 execTypeCheckerMonad cla stmts =
   runTypeCheckerMonad initialEnvironment (typeCheckStmtsM stmts)
     . runTypeCheckerMonad initialEnvironment (returnCheckStmtsM stmts)
@@ -35,8 +36,9 @@ errorsHandler error = do
   stripEndLine = filter (/= '\n')
   addContext mess stmt =
     concat [mess, " in\n `", stripEndLine . printTree $ stmt, "` \n"]
-  go (TypeMismatch actual expected context) = showTextSeq
-    [ addContext "type mismatch" context
+  mismatchGeneric context = addContext "type mismatch" context
+  go (TypeMismatch _ actual expected context) = showTextSeq
+    [ mismatchGeneric context
     , "expected any of"
     , show expected
     , "actual type"

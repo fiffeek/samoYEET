@@ -16,7 +16,7 @@ int f() {
         }
         i++;
     }
-
+    yeet("should not be here");
     return 11;
 }
 

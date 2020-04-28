@@ -9,6 +9,11 @@ import           Interpreter.RuntimeError
 import           Control.Monad.Except
 import           Control.Monad.Reader
 
+type IArg = Arg (Maybe (Int, Int))
+type IBlock = Block (Maybe (Int, Int))
+type ISType = SType (Maybe (Int, Int))
+type IExpr = Expr (Maybe (Int, Int))
+
 type MemAdr = Int
 data Store = Store {
     storage ::  M.Map MemAdr VType,
@@ -21,14 +26,14 @@ data Env = Env {
   vEnv :: VEnv,
   pEnv :: PEnv,
   vtype :: VType,
-  context :: Stmt
+  context :: IStmt
 } deriving Show
 
 data FunctionDefinition = FunctionDefinition {
-  pType :: SType,
+  pType :: ISType,
   ident :: Ident,
-  pArgs :: [Arg],
-  body :: Block,
+  pArgs :: [IArg],
+  body :: IBlock,
   env :: Env
 } deriving Show
 
@@ -39,7 +44,7 @@ data VType = VInt Integer
   | VNone
   | VBreak
   | VContinue
-  | VFun { fArgs:: [Arg], fBody :: Block, fEnv :: Env, fRet :: SType }
+  | VFun { fArgs:: [IArg], fBody :: IBlock, fEnv :: Env, fRet :: ISType }
 
 funDefToVType :: FunctionDefinition -> VType
 funDefToVType (FunctionDefinition ret _ args body env) =
@@ -47,7 +52,7 @@ funDefToVType (FunctionDefinition ret _ args body env) =
 
 instance Show VType where
   show (VInt  val) = show val
-  show (VStr  val) = filter (/= '"') $ show val
+  show (VStr  val) = filter (/= '"') val
   show (VBool val) = show val
 
 instance Eq VType where
@@ -68,34 +73,34 @@ myOr (VBool left) (VBool right) = VBool $ or [left, right]
 myNeg (VInt val) = VInt $ (-1) * val
 myNot (VBool val) = VBool $ not val
 
-myRel :: (MonadError RuntimeError m) => RelOp -> m VType -> m VType -> m VType
+myRel :: (MonadError RuntimeError m) => RelOp a -> m VType -> m VType -> m VType
 myRel op left right = do
   l <- left
   r <- right
   return . VBool $ (matcher op) l r
  where
-  matcher :: RelOp -> VType -> VType -> Bool
-  matcher LTH l r = l < r
-  matcher LE  l r = l <= r
-  matcher GTH l r = l > r
-  matcher GE  l r = l >= r
-  matcher EQU l r = l == r
-  matcher NE  l r = l /= r
+  matcher :: RelOp a -> VType -> VType -> Bool
+  matcher (LTH _) l r = l < r
+  matcher (LE  _) l r = l <= r
+  matcher (GTH _) l r = l > r
+  matcher (GE  _) l r = l >= r
+  matcher (EQU _) l r = l == r
+  matcher (NE  _) l r = l /= r
 
 myPlus (VInt left) (VInt right) = VInt $ left + right
 myPlus (VStr left) (VStr right) = VStr $ left ++ right
 myMinus (VInt left) (VInt right) = VInt $ left - right
 
-myAdd :: (MonadError RuntimeError m) => AddOp -> m VType -> m VType -> m VType
+myAdd :: (MonadError RuntimeError m) => AddOp a -> m VType -> m VType -> m VType
 myAdd op left right = do
   l <- left
   r <- right
   pure $ (matcher op) l r
  where
-  matcher Plus  = myPlus
-  matcher Minus = myMinus
+  matcher (Plus  _) = myPlus
+  matcher (Minus _) = myMinus
 
-myMul :: (MonadError RuntimeError m) => MulOp -> m VType -> m VType -> m VType
+myMul :: (MonadError RuntimeError m) => MulOp a -> m VType -> m VType -> m VType
 myMul op left right = do
   l <- left
   r <- right
@@ -108,6 +113,6 @@ myMul op left right = do
 
   myMod (VInt left) (VInt right) = pure . VInt $ left `mod` right
 
-  matcher Times = myTimes
-  matcher Div   = myDiv
-  matcher Mod   = myMod
+  matcher (Times _) = myTimes
+  matcher (Div   _) = myDiv
+  matcher (Mod   _) = myMod

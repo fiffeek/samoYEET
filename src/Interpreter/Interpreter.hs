@@ -12,34 +12,34 @@ import           Interpreter.Types
 import qualified Data.Map                      as M
 import           Interpreter.RuntimeError
 
-evaluateExprM :: Expr -> InterpretMonad VType
-evaluateExprM (ELitInt val           ) = return (VInt val)
-evaluateExprM (ELitTrue              ) = return (VBool True)
-evaluateExprM (ELitFalse             ) = return (VBool False)
-evaluateExprM (EString val           ) = return (VStr val)
-evaluateExprM (ELambda args ret block) = do
+evaluateExprM :: IExpr -> InterpretMonad VType
+evaluateExprM (ELitInt _ val           ) = return (VInt val)
+evaluateExprM (ELitTrue  _             ) = return (VBool True)
+evaluateExprM (ELitFalse _             ) = return (VBool False)
+evaluateExprM (EString _ val           ) = return (VStr val)
+evaluateExprM (ELambda _ args ret block) = do
   env <- ask
   return $ VFun args block env ret
-evaluateExprM (Neg expr) = do
+evaluateExprM (Neg _ expr) = do
   fmap myNeg (evaluateExprM expr)
-evaluateExprM (Not expr) = do
+evaluateExprM (Not _ expr) = do
   fmap myNot (evaluateExprM expr)
-evaluateExprM (EMul left op right) =
+evaluateExprM (EMul _ left op right) =
   myMul op (evaluateExprM left) (evaluateExprM right)
-evaluateExprM (EAdd left op right) =
+evaluateExprM (EAdd _ left op right) =
   myAdd op (evaluateExprM left) (evaluateExprM right)
-evaluateExprM (ERel left op right) =
+evaluateExprM (ERel _ left op right) =
   myRel op (evaluateExprM left) (evaluateExprM right)
-evaluateExprM (EAnd left right) =
+evaluateExprM (EAnd _ left right) =
   liftM2 myAnd (evaluateExprM left) (evaluateExprM right)
-evaluateExprM (EOr left right) =
+evaluateExprM (EOr _ left right) =
   liftM2 myOr (evaluateExprM left) (evaluateExprM right)
-evaluateExprM (EVar var       ) = getById var
-evaluateExprM (EApp name exprs) = do
+evaluateExprM (EVar _ var       ) = getById var
+evaluateExprM (EApp _ name exprs) = do
   pEnv    <- asks pEnv
   currEnv <- ask
   ctx     <- asks context
-  (FunctionDefinition _ _ args b@(Block stmts) envF) <- getOrError
+  (FunctionDefinition _ _ args b@(Block _ stmts) envF) <- getOrError
     (M.lookup name pEnv)
     (VariableNotInitialized name ctx)
   let argExpr = args `zip` exprs
@@ -48,9 +48,9 @@ evaluateExprM (EApp name exprs) = do
   when (vtype executeBlock == VNone) $ throwError ValueNotReturned
   return (vtype executeBlock)
  where
-  dispatcher :: [(Arg, Expr)] -> Env -> InterpretMonad Env
-  dispatcher []                          _       = ask
-  dispatcher (((Arg _ name), expr) : xs) evalEnv = do
+  dispatcher :: [(IArg, IExpr)] -> Env -> InterpretMonad Env
+  dispatcher []                            _       = ask
+  dispatcher (((Arg _ _ name), expr) : xs) evalEnv = do
     val    <- local (const evalEnv) $ evaluateExprM expr
     curEnv <- ask
     case val of
@@ -60,45 +60,46 @@ evaluateExprM (EApp name exprs) = do
       _ -> do
         env <- putValInit name val
         local (const env) $ dispatcher xs evalEnv
-  dispatcher (((RefArg _ name), (EVar calledWith)) : xs) evalEnv = do
+  dispatcher (((RefArg _ _ name), (EVar _ calledWith)) : xs) evalEnv = do
     ctx <- asks context
     loc <- getOrError (M.lookup calledWith $ vEnv evalEnv)
                       (VariableNotInitialized calledWith ctx)
     local (putVal name loc) $ dispatcher xs evalEnv
 
-execStatementM :: Stmt -> InterpretMonad Env
+execStatementM :: IStmt -> InterpretMonad Env
 execStatementM stmt = putStmt stmt $ go stmt
  where
-  go (Ret   expr         ) = liftM2 changeRetType (evaluateExprM expr) ask
+  go (Ret _ expr) = liftM2 changeRetType (evaluateExprM expr) ask
 
-  go (BStmt (Block stmts)) = liftM2 flushVariables ask (execStatementsM stmts)
+  go (BStmt _ (Block _ stmts)) =
+    liftM2 flushVariables ask (execStatementsM stmts)
 
-  go (Empty              ) = ask
-  go (VRet               ) = ask >>= return . changeRetType VVoid
-  go (SBreak             ) = ask >>= return . changeRetType VBreak
-  go (SContinue          ) = ask >>= return . changeRetType VContinue
-  go (Decl _ []          ) = ask
+  go (Empty     _) = ask
+  go (VRet      _) = ask >>= return . changeRetType VVoid
+  go (SBreak    _) = ask >>= return . changeRetType VBreak
+  go (SContinue _) = ask >>= return . changeRetType VContinue
+  go (Decl _ _ []) = ask
 
-  go (Decl t@(Fun _ _) ((NoInit name) : xs)) =
-    local (shadowName name) $ execStatementM (Decl t xs)
+  go (Decl ctx t@(Fun _ _ _) ((NoInit _ name) : xs)) =
+    local (shadowName name) $ execStatementM (Decl ctx t xs)
 
-  go (Decl t ((NoInit name) : xs)) = do
+  go (Decl ctx t ((NoInit _ name) : xs)) = do
     env <- putValNoInit name
-    local (const env) $ execStatementM (Decl t xs)
+    local (const env) $ execStatementM (Decl ctx t xs)
 
-  go (Decl t@(Fun _ _) ((Init name expr) : xs)) = do
+  go (Decl ctx t@(Fun _ _ _) ((Init _ name expr) : xs)) = do
     (VFun args body env ret) <- evaluateExprM expr
     local (declareFunWithEnv ret name args body env)
-      $ execStatementM (Decl t xs)
+      $ execStatementM (Decl ctx t xs)
 
-  go (Decl t ((Init name expr) : xs)) = do
+  go (Decl ctx t ((Init _ name expr) : xs)) = do
     val <- evaluateExprM expr
     env <- putValInit name val
-    local (const env) $ execStatementM (Decl t xs)
+    local (const env) $ execStatementM (Decl ctx t xs)
 
-  go (Print expr   ) = evaluateExprM expr >>= liftIO . putStrLn . show >> ask
+  go (Print _ expr   ) = evaluateExprM expr >>= liftIO . putStrLn . show >> ask
 
-  go (Ass name expr) = do
+  go (Ass _ name expr) = do
     val    <- evaluateExprM expr
     curEnv <- ask
     ctx    <- asks context
@@ -111,12 +112,12 @@ execStatementM stmt = putStmt stmt $ go stmt
         CMS.modify (putValInAddr val loc)
         return $ curEnv
 
-  go (Incr name                ) = addToVar name 1
-  go (Decr name                ) = addToVar name (-1)
-  go (SExp expr                ) = evaluateExprM expr >> ask
-  go (Cond expr stmt           ) = execStatementM (CondElse expr stmt Empty)
+  go (Incr _ name                ) = addToVar name 1
+  go (Decr _ name                ) = addToVar name (-1)
+  go (SExp _ expr                ) = evaluateExprM expr >> ask
+  go (Cond ctx expr stmt) = execStatementM (CondElse ctx expr stmt (Empty ctx))
 
-  go (CondElse expr stmt1 stmt2) = do
+  go (CondElse _ expr stmt1 stmt2) = do
     val <- evaluateExprM expr
     liftM2
       flushVariables
@@ -126,13 +127,13 @@ execStatementM stmt = putStmt stmt $ go stmt
         else execStatementM stmt2
       )
 
-  go loop@(While expr stmt) = do
+  go loop@(While _ expr stmt) = do
     val <- evaluateExprM expr
     if val == (VBool True)
       then execStatementM stmt >>= flip matchReturnType (execStatementM loop)
       else ask
 
-  go (SFnDef retType name args block) = do
+  go (SFnDef _ retType name args block) = do
     env <- ask
     return (putFunInEnv retType name args block env)
 
@@ -155,7 +156,7 @@ addToVar name toAdd = do
   CMS.modify (putValInAddr inc loc)
   ask
 
-execStatementsM :: [Stmt] -> InterpretMonad Env
+execStatementsM :: [IStmt] -> InterpretMonad Env
 execStatementsM []       = ask
 execStatementsM (x : []) = execStatementM x
 execStatementsM (x : xs) = execStatementM x

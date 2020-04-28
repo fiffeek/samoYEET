@@ -12,56 +12,70 @@ import           Control.Applicative
 import           TypeChecker.Converter
 import           TypeChecker.Environment
 import           TypeChecker.TypeError
+import           TypeChecker.Types
 
-ensureType :: SType -> SType -> TypeCheckerMonad SType
-ensureType expected actual = ensureAnyType actual [expected]
+ensureType
+  :: TypeMismatchContext -> TCSType -> TCSType -> TypeCheckerMonad TCSType
+ensureType ctx expected actual = ensureAnyType ctx actual [expected]
 
-ensureAnyType :: SType -> [SType] -> TypeCheckerMonad SType
-ensureAnyType t1 t2 = do
+ensureAnyType
+  :: TypeMismatchContext -> TCSType -> [TCSType] -> TypeCheckerMonad TCSType
+ensureAnyType ctx t1 t2 = do
   stmt_ <- asks stmt
-  unless (t1 `elem` t2) . throwError $ TypeMismatch t1 t2 stmt_
+  unless (t1NoContext `elem` t2NoContext) . throwError $ TypeMismatch ctx
+                                                                      t1
+                                                                      t2
+                                                                      stmt_
   return t1
+ where
+  t1NoContext = dropContext t1
+  t2NoContext = fmap dropContext t2
 
-ensureReturnType :: Maybe SType -> Maybe SType -> TypeCheckerMonad ()
+ensureReturnType :: Maybe TCSType -> Maybe TCSType -> TypeCheckerMonad ()
 ensureReturnType t1 t2 = do
   let maybePair = (,) <$> t1 <*> t2
   case maybePair of
-    (Just (fT, sT)) -> ensureType fT sT >> return ()
+    (Just (fT, sT)) -> ensureType (ReturnType fT) fT sT >> return ()
     _               -> return ()
 
-ensureExprTypes :: Expr -> Expr -> [SType] -> TypeCheckerMonad SType
-ensureExprTypes e1 e2 possibleTypes = do
+ensureExprTypes
+  :: TypeMismatchContext
+  -> TCExpr
+  -> TCExpr
+  -> [TCSType]
+  -> TypeCheckerMonad TCSType
+ensureExprTypes ctx e1 e2 possibleTypes = do
   typeE1 <- typeCheckExpr e1
   typeE2 <- typeCheckExpr e2
-  ensureType typeE1 typeE2
-  ensureAnyType typeE1 possibleTypes
+  ensureAnyType ctx typeE1 possibleTypes
+  ensureType LHSRHS typeE1 typeE2
 
 getOrError :: Maybe a -> TypeError -> TypeCheckerMonad a
 getOrError maybeVal error = maybe (throwError error) return maybeVal
 
-varPossibleTypes :: [SType]
-varPossibleTypes = [Int, Str, Bool]
+varPossibleTypes :: [TCSType]
+varPossibleTypes = [Int, Str, Bool] <*> [Nothing]
 comparableTypes = varPossibleTypes
-functionReturnTypes = varPossibleTypes ++ [Void]
+functionReturnTypes = varPossibleTypes ++ [Void Nothing]
 possiblePrintTypes = varPossibleTypes
 
-ensureLoopExists :: Stmt -> Env -> TypeCheckerMonad ()
+ensureLoopExists :: TCStmt -> Env -> TypeCheckerMonad ()
 ensureLoopExists s e =
   unless (loopsOnStack e > 0) . throwError $ OutsideOfLoop s
 
-checkFunction :: SType -> [Expr] -> Ident -> TypeCheckerMonad SType
-checkFunction (Fun retType args) exprs name = do
+checkFunction :: TCSType -> [TCExpr] -> Ident -> TypeCheckerMonad TCSType
+checkFunction (Fun _ retType args) exprs name = do
   ensureLength args exprs
   passedArgs <- sequence $ map typeCheckExpr exprs
   let passedWithExpr       = args `zip` exprs
   let passedWithActualType = passedArgs `zip` (map maybeRefToSType args)
-  sequence_ $ map (uncurry ensureType) passedWithActualType
+  sequence_ $ map (uncurry $ ensureType FunArgType) passedWithActualType
   sequence_ $ map (uncurry ensureReference) passedWithExpr
   return retType
  where
-  ensureReference :: MaybeRefType -> Expr -> TypeCheckerMonad ()
-  ensureReference (JustRef t) (EVar x) = return ()
-  ensureReference (JustRef _) _        = do
+  ensureReference :: TCMaybeRefType -> TCExpr -> TypeCheckerMonad ()
+  ensureReference (JustRef _ t) (EVar _ x) = return ()
+  ensureReference (JustRef _ _) _          = do
     stmt_ <- asks stmt
     throwError $ BadReference stmt_
   ensureReference _ _ = return ()
@@ -71,30 +85,33 @@ checkFunction (Fun retType args) exprs name = do
     unless (length t1 == length t2) . throwError $ WrongNumberOfArguments name
 checkFunction _ _ _ = throwError NotAFunction
 
-typeCheckExpr :: Expr -> TypeCheckerMonad SType
-typeCheckExpr expr = putStmt (SExp expr) $ go expr
+typeCheckExpr :: TCExpr -> TypeCheckerMonad TCSType
+typeCheckExpr expr = putStmt (SExp Nothing expr) $ go expr
  where
-  go (ELambda args ret block) = do
-    typeCheckStmtM (SFnDef ret (Ident "[]") args block)
-    return $ Fun ret (map argToRefType args)
-  go (ELitInt _            ) = return Int
-  go (ELitTrue             ) = return Bool
-  go (ELitFalse            ) = return Bool
-  go (EString _            ) = return Str
-  go (Neg     v            ) = typeCheckExpr v >>= ensureType (Int)
-  go (Not     v            ) = typeCheckExpr v >>= ensureType (Bool)
-  go (EMul left op    right) = ensureExprTypes left right [Int]
-  go (EAdd left Plus  right) = ensureExprTypes left right [Int, Str]
-  go (EAdd left Minus right) = ensureExprTypes left right [Int]
-  go (EAnd left right      ) = ensureExprTypes left right [Bool]
-  go (EOr  left right      ) = ensureExprTypes left right [Bool]
-  go (ERel left _ right) =
-    ensureExprTypes left right comparableTypes >> return Bool
-  go (EVar v) = do
+  go (ELambda ctx args ret block) = do
+    typeCheckStmtM (SFnDef ctx ret (Ident "[]") args block)
+    return $ Fun ctx ret (map argToRefType args)
+  go (ELitInt ctx _         ) = return $ Int ctx
+  go (ELitTrue  ctx         ) = return $ Bool ctx
+  go (ELitFalse ctx         ) = return $ Bool ctx
+  go (EString ctx _         ) = return $ Str ctx
+  go (Neg ctx v) = typeCheckExpr v >>= ensureType BinaryInt (Int ctx)
+  go (Not ctx v) = typeCheckExpr v >>= ensureType BinaryInt (Bool ctx)
+  go (EMul ctx left op right) = ensureExprTypes OpInt left right [Int ctx]
+  go (EAnd ctx left right   ) = ensureExprTypes OpBool left right [Bool ctx]
+  go (EOr  ctx left right   ) = ensureExprTypes OpBool left right [Bool ctx]
+  go (EAdd ctx left (Minus _) right) =
+    ensureExprTypes OpInt left right [Int ctx]
+  go (EAdd ctx left (Plus _) right) =
+    ensureExprTypes OpPlus left right ([Int, Str] <*> [ctx])
+  go (ERel ctx left _ right) =
+    ensureExprTypes ComparableTypes left right comparableTypes
+      >> return (Bool ctx)
+  go (EVar _ v) = do
     env     <- asks types
     context <- asks stmt
     getOrError (M.lookup v env) (NotInitialized v context)
-  go (EApp name exprs) = do
+  go (EApp _ name exprs) = do
     env     <- asks types
     context <- asks stmt
     t       <- getOrError (M.lookup name env) (NotInitialized name context)
@@ -105,108 +122,106 @@ correct = do
   env <- ask
   return $ overrideStatus Nothing env
 
-typeCheckStmtM :: Stmt -> TypeCheckerMonad Env
+typeCheckStmtM :: TCStmt -> TypeCheckerMonad Env
 typeCheckStmtM stmt = putStmt stmt $ go stmt
  where
-  go (Ret expr) = do
+  go (Ret _ expr) = do
     env <- ask
     t   <- typeCheckExpr expr
     ensureReturnType (funRetType env) (Just t)
     return $ overrideJustStatus t env
 
-  go (VRet) = do
+  go (VRet ctx) = do
     env <- ask
-    ensureReturnType (funRetType env) (Just Void)
-    return $ overrideJustStatus Void env
+    ensureReturnType (funRetType env) (Just (Void ctx))
+    return $ overrideJustStatus (Void ctx) env
 
-  go (Empty) = correct
+  go (Empty _) = correct
 
-  go (Print expr) =
-    typeCheckExpr expr >>= flip ensureAnyType possiblePrintTypes >> correct
+  go (Print _ expr) =
+    typeCheckExpr expr
+      >>= flip (ensureAnyType PrintT) possiblePrintTypes
+      >>  correct
 
-  go (    SBreak       ) = ask >>= ensureLoopExists SBreak >> correct
+  go (    SBreak    ctx  ) = ask >>= ensureLoopExists (SBreak ctx) >> correct
+  go (    SContinue ctx  ) = ask >>= ensureLoopExists (SContinue ctx) >> correct
 
-  go (    SContinue    ) = ask >>= ensureLoopExists SContinue >> correct
-
-  go ctx@(Ass name expr) = do
+  go ctx@(Ass _ name expr) = do
     env <- asks types
     t   <- getOrError (M.lookup name env) (NotInitialized name ctx)
     val <- typeCheckExpr expr
-    ensureType t val
+    ensureType (Assignment t) t val
     correct
 
-  go (Incr name     ) = typeCheckStmtM (Ass name (ELitInt 1))
+  go (Incr ctx name     ) = typeCheckStmtM (Ass ctx name (ELitInt ctx 1))
+  go (Decr ctx name     ) = typeCheckStmtM (Incr ctx name)
+  go (SExp _   expr     ) = typeCheckExpr expr >> correct
 
-  go (Decr name     ) = typeCheckStmtM (Incr name)
-
-  go (SExp expr     ) = typeCheckExpr expr >> correct
-
-  go (Cond expr stmt) = do
+  go (Cond ctx expr stmt) = do
     env <- ask
     t   <- typeCheckExpr expr
-    ensureType Bool t
+    ensureType ConditionBool (Bool ctx) t
     blockEnv <- local (putBlockOnStack) $ typeCheckStmtM stmt
     return $ alternateStatus (status blockEnv) env
 
-  go (CondElse expr stmt1 stmt2) = do
+  go (CondElse ctx expr stmt1 stmt2) = do
     env <- ask
     t   <- typeCheckExpr expr
-    ensureType Bool t
+    ensureType ConditionBool (Bool ctx) t
     blockEnv1 <- local (putBlockOnStack) $ typeCheckStmtM stmt1
     blockEnv2 <- local (putBlockOnStack) $ typeCheckStmtM stmt2
     ensureReturnType (status blockEnv1) (status blockEnv2)
     return $ alternateStatus (status blockEnv2)
                              (alternateStatus (status blockEnv1) env)
 
-  go (Decl _ []                  ) = ask
-
-  go (Decl t ((NoInit name) : xs)) = do
+  go (Decl _   _ []                    ) = ask
+  go (Decl ctx t ((NoInit _ name) : xs)) = do
     env <- ask >>= putType name t
-    local (const env) $ typeCheckStmtM (Decl t xs)
-
-  go (Decl t ((Init name expr) : xs)) = do
+    local (const env) $ typeCheckStmtM (Decl ctx t xs)
+  go (Decl ctx t ((Init _ name expr) : xs)) = do
     curEnv <- ask
     val    <- typeCheckExpr expr
-    ensureType t val
+    ensureType (DeclVaries t) t val
     env <- putType name t curEnv
-    local (const env) $ typeCheckStmtM (Decl t xs)
+    local (const env) $ typeCheckStmtM (Decl ctx t xs)
 
-  go (SFnDef retType name args block) = do
+  go (SFnDef ctx retType name args block) = do
     entireEnv <- ask
     sequence_ $ fmap ensureArgumentType args
     let maybeRefArgType = map argToRefType args
     envAfterDecl <- local (putBlockOnStack)
       $ typeCheckStmtsM (map argToNoInit args)
-    putFun <- putType name (Fun retType maybeRefArgType) envAfterDecl
+    putFun <- putType name (Fun ctx retType maybeRefArgType) envAfterDecl
     let putRetType = putFunRetType retType putFun
     let blockOut   = removeBlockFromStack putRetType
-    envBody  <- local (const blockOut) $ typeCheckStmtM (BStmt block)
+    envBody  <- local (const blockOut) $ typeCheckStmtM (BStmt ctx block)
     bodyType <- getOrError (status envBody)
                            (FunctionBodyDoesNotReturnValue name)
-    ensureType retType bodyType
-    putType name (Fun retType maybeRefArgType) entireEnv
+    ensureType (ReturnType retType) retType bodyType
+    putType name (Fun ctx retType maybeRefArgType) entireEnv
 
-  go (BStmt (Block stmts)) = do
+  go (BStmt _ (Block _ stmts)) = do
     env      <- ask
     blockEnv <- local (putBlockOnStack) $ typeCheckStmtsM stmts
     return $ alternateStatus (status blockEnv) env
 
-  go (While expr stmt) = do
+  go (While ctx expr stmt) = do
     env   <- ask
     exprT <- typeCheckExpr expr
-    ensureType exprT Bool
+    ensureType ConditionBool exprT (Bool ctx)
     blockEnv <- local (putLoopOnStack) $ typeCheckStmtM stmt
     return $ alternateStatus (status blockEnv) env
 
-  ensureArgumentType :: Arg -> TypeCheckerMonad ()
-  ensureArgumentType (Arg    (Fun _ _) _) = pure ()
-  ensureArgumentType (RefArg (Fun _ _) _) = throwError FunctionNotReferenceable
+  ensureArgumentType :: TCArg -> TypeCheckerMonad ()
+  ensureArgumentType (Arg _ (Fun _ _ _) _) = pure ()
+  ensureArgumentType (RefArg _ (Fun _ _ _) _) =
+    throwError FunctionNotReferenceable
   ensureArgumentType t =
-    ensureAnyType (argToSType t) varPossibleTypes >> pure ()
+    ensureAnyType FunArgType (argToSType t) varPossibleTypes >> pure ()
 
 
 
-typeCheckStmtsM :: [Stmt] -> TypeCheckerMonad Env
+typeCheckStmtsM :: [TCStmt] -> TypeCheckerMonad Env
 typeCheckStmtsM []       = ask
 typeCheckStmtsM (x : []) = typeCheckStmtM x
 typeCheckStmtsM (x : xs) = do

@@ -31,7 +31,7 @@ import           Common.Utils
 import           Common.CommandLineHelpers
 import           Common.Logging
 
-type ParseFun = [Token] -> Err Program
+type ParseFun = [Token] -> Err (Program (Maybe (Int, Int)))
 
 runFile :: CommandLineArguments -> ParseFun -> FilePath -> IO ()
 runFile cla p f = readFile f >>= run cla p
@@ -45,8 +45,8 @@ run cla p s = parse (\tree -> typeCheck tree cla $ execInterpretMonad tree)
   parseError = "Parse Error: "
   ts         = myLexer s
   parse cont = case p ts of
-    Bad s                  -> putStrLn $ parseError ++ s
-    Ok  entire@(Program p) -> do
+    Bad s                    -> putStrLn $ parseError ++ s
+    Ok  entire@(Program _ p) -> do
       showTree cla entire
       cont p
 

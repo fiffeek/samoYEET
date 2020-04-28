@@ -9,31 +9,31 @@ import           Control.Applicative
 import           TypeChecker.Converter
 import           TypeChecker.Environment
 import           TypeChecker.TypeError
+import           TypeChecker.Types
 
-returnCheckExprM :: Expr -> TypeCheckerMonad ()
-returnCheckExprM (ELambda args ret block) = do
-  returnCheckStmtM (SFnDef ret (Ident "[]") args block)
+returnCheckExprM :: TCExpr -> TypeCheckerMonad ()
+returnCheckExprM (ELambda ctx args ret block) = do
+  returnCheckStmtM (SFnDef ctx ret (Ident "[]") args block)
   pure ()
-returnCheckExprM (EApp _ exprs) = sequence_ $ fmap returnCheckExprM exprs
-returnCheckExprM _              = pure ()
+returnCheckExprM (EApp _ _ exprs) = sequence_ $ fmap returnCheckExprM exprs
+returnCheckExprM _                = pure ()
 
-returnCheckStmtM :: Stmt -> TypeCheckerMonad Bool
-returnCheckStmtM (Ret _) = return True
-returnCheckStmtM (VRet ) = return True
-returnCheckStmtM (CondElse _ stmt1 stmt2) =
+returnCheckStmtM :: TCStmt -> TypeCheckerMonad Bool
+returnCheckStmtM (Ret _ _) = return True
+returnCheckStmtM (VRet _ ) = return True
+returnCheckStmtM (CondElse _ _ stmt1 stmt2) =
   liftM2 (&&) (returnCheckStmtM stmt1) (returnCheckStmtM stmt2)
-returnCheckStmtM (SFnDef _ name _ block) = do
-  blockCheck <- returnCheckStmtM (BStmt block)
+returnCheckStmtM (SFnDef ctx _ name _ block) = do
+  blockCheck <- returnCheckStmtM (BStmt ctx block)
   if not blockCheck then throwError $ ReturnMissing name else return False
-returnCheckStmtM (BStmt (Block b)) = do
+returnCheckStmtM (BStmt _ (Block _ b)) = do
   checked <- sequence $ fmap returnCheckStmtM b
   return $ or checked
-returnCheckStmtM (Decl _ []) = return True
-returnCheckStmtM (Decl t ((Init _ expr) : xs)) =
-  returnCheckExprM expr >> returnCheckStmtM (Decl t xs) >> return True
-returnCheckStmtM (Ass _ expr) = returnCheckExprM expr >> return True
-returnCheckStmtM _            = return False
+returnCheckStmtM (Decl ctx t ((Init _ _ expr) : xs)) =
+  returnCheckExprM expr >> returnCheckStmtM (Decl ctx t xs) >> return False
+returnCheckStmtM (Ass _ _ expr) = returnCheckExprM expr >> return False
+returnCheckStmtM _              = return False
 
 
-returnCheckStmtsM :: [Stmt] -> TypeCheckerMonad ()
+returnCheckStmtsM :: [TCStmt] -> TypeCheckerMonad ()
 returnCheckStmtsM stmts = sequence_ $ fmap returnCheckStmtM stmts

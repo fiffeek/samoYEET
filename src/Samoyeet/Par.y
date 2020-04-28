@@ -11,7 +11,7 @@ import Samoyeet.ErrM
 -- no lexer declaration
 %monad { Err } { thenM } { returnM }
 %tokentype {Token}
-%name pProgram Program
+%name pProgram_internal Program
 %token
   '!' { PT _ (TS _ 1) }
   '!=' { PT _ (TS _ 2) }
@@ -54,354 +54,354 @@ import Samoyeet.ErrM
   '{' { PT _ (TS _ 39) }
   '}' { PT _ (TS _ 40) }
 
-  L_ident {PT _ (TV $$)}
-  L_integ {PT _ (TI $$)}
-  L_quoted {PT _ (TL $$)}
+  L_ident {PT _ (TV _)}
+  L_integ {PT _ (TI _)}
+  L_quoted {PT _ (TL _)}
 
 %%
 
 Ident :: {
-  Ident 
+  (Maybe (Int, Int), Ident)
 }
 : L_ident {
-  Ident $1 
+  (Just (tokenLineCol $1), Ident (prToken $1)) 
 }
 
 Integer :: {
-  Integer 
+  (Maybe (Int, Int), Integer)
 }
 : L_integ {
-  read $1 
+  (Just (tokenLineCol $1), read (prToken $1)) 
 }
 
 String :: {
-  String 
+  (Maybe (Int, Int), String)
 }
 : L_quoted {
-  $1 
+  (Just (tokenLineCol $1), prToken $1)
 }
 
 Program :: {
-  Program 
+  (Maybe (Int, Int), Program (Maybe (Int, Int)))
 }
 : ListStmt {
-  Samoyeet.Abs.Program (reverse $1)
+  (fst $1, Samoyeet.Abs.Program (fst $1)(reverse (snd $1)))
 }
 
 Arg :: {
-  Arg 
+  (Maybe (Int, Int), Arg (Maybe (Int, Int)))
 }
 : SType Ident {
-  Samoyeet.Abs.Arg $1 $2 
+  (fst $1, Samoyeet.Abs.Arg (fst $1)(snd $1)(snd $2)) 
 }
 | SType '&' Ident {
-  Samoyeet.Abs.RefArg $1 $3 
+  (fst $1, Samoyeet.Abs.RefArg (fst $1)(snd $1)(snd $3)) 
 }
 
 ListArg :: {
-  [Arg]
+  (Maybe (Int, Int), [Arg (Maybe (Int, Int))]) 
 }
 : {
-  [] 
+  (Nothing, [])
 }
 | Arg {
-  (:[]) $1 
+  (fst $1, (:[]) (snd $1)) 
 }
 | Arg ',' ListArg {
-  (:) $1 $3 
+  (fst $1, (:) (snd $1)(snd $3)) 
 }
 
 Block :: {
-  Block 
+  (Maybe (Int, Int), Block (Maybe (Int, Int)))
 }
 : '{' ListStmt '}' {
-  Samoyeet.Abs.Block (reverse $2)
+  (Just (tokenLineCol $1), Samoyeet.Abs.Block (Just (tokenLineCol $1)) (reverse (snd $2)))
 }
 
 ListStmt :: {
-  [Stmt]
+  (Maybe (Int, Int), [Stmt (Maybe (Int, Int))]) 
 }
 : {
-  [] 
+  (Nothing, [])
 }
 | ListStmt Stmt {
-  flip (:) $1 $2 
+  (fst $1, flip (:) (snd $1)(snd $2)) 
 }
 
 Stmt :: {
-  Stmt 
+  (Maybe (Int, Int), Stmt (Maybe (Int, Int)))
 }
 : ';' {
-  Samoyeet.Abs.Empty 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Empty (Just (tokenLineCol $1)))
 }
 | Block {
-  Samoyeet.Abs.BStmt $1 
+  (fst $1, Samoyeet.Abs.BStmt (fst $1)(snd $1)) 
 }
 | SType ListItem ';' {
-  Samoyeet.Abs.Decl $1 $2 
+  (fst $1, Samoyeet.Abs.Decl (fst $1)(snd $1)(snd $2)) 
 }
 | Ident '=' Expr ';' {
-  Samoyeet.Abs.Ass $1 $3 
+  (fst $1, Samoyeet.Abs.Ass (fst $1)(snd $1)(snd $3)) 
 }
 | Ident '++' ';' {
-  Samoyeet.Abs.Incr $1 
+  (fst $1, Samoyeet.Abs.Incr (fst $1)(snd $1)) 
 }
 | Ident '--' ';' {
-  Samoyeet.Abs.Decr $1 
+  (fst $1, Samoyeet.Abs.Decr (fst $1)(snd $1)) 
 }
 | 'return' Expr ';' {
-  Samoyeet.Abs.Ret $2 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Ret (Just (tokenLineCol $1)) (snd $2)) 
 }
 | 'return' ';' {
-  Samoyeet.Abs.VRet 
+  (Just (tokenLineCol $1), Samoyeet.Abs.VRet (Just (tokenLineCol $1)))
 }
 | 'if' '(' Expr ')' Stmt {
-  Samoyeet.Abs.Cond $3 $5 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Cond (Just (tokenLineCol $1)) (snd $3)(snd $5)) 
 }
 | 'if' '(' Expr ')' Stmt 'else' Stmt {
-  Samoyeet.Abs.CondElse $3 $5 $7 
+  (Just (tokenLineCol $1), Samoyeet.Abs.CondElse (Just (tokenLineCol $1)) (snd $3)(snd $5)(snd $7)) 
 }
 | 'while' '(' Expr ')' Stmt {
-  Samoyeet.Abs.While $3 $5 
+  (Just (tokenLineCol $1), Samoyeet.Abs.While (Just (tokenLineCol $1)) (snd $3)(snd $5)) 
 }
 | 'break;' {
-  Samoyeet.Abs.SBreak 
+  (Just (tokenLineCol $1), Samoyeet.Abs.SBreak (Just (tokenLineCol $1)))
 }
 | 'continue;' {
-  Samoyeet.Abs.SContinue 
+  (Just (tokenLineCol $1), Samoyeet.Abs.SContinue (Just (tokenLineCol $1)))
 }
 | Expr ';' {
-  Samoyeet.Abs.SExp $1 
+  (fst $1, Samoyeet.Abs.SExp (fst $1)(snd $1)) 
 }
 | 'yeet' Expr ';' {
-  Samoyeet.Abs.Print $2 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Print (Just (tokenLineCol $1)) (snd $2)) 
 }
 | SType Ident '(' ListArg ')' Block {
-  Samoyeet.Abs.SFnDef $1 $2 $4 $6 
+  (fst $1, Samoyeet.Abs.SFnDef (fst $1)(snd $1)(snd $2)(snd $4)(snd $6)) 
 }
 
 Item :: {
-  Item 
+  (Maybe (Int, Int), Item (Maybe (Int, Int)))
 }
 : Ident {
-  Samoyeet.Abs.NoInit $1 
+  (fst $1, Samoyeet.Abs.NoInit (fst $1)(snd $1)) 
 }
 | Ident '=' Expr {
-  Samoyeet.Abs.Init $1 $3 
+  (fst $1, Samoyeet.Abs.Init (fst $1)(snd $1)(snd $3)) 
 }
 
 ListItem :: {
-  [Item]
+  (Maybe (Int, Int), [Item (Maybe (Int, Int))]) 
 }
 : Item {
-  (:[]) $1 
+  (fst $1, (:[]) (snd $1)) 
 }
 | Item ',' ListItem {
-  (:) $1 $3 
+  (fst $1, (:) (snd $1)(snd $3)) 
 }
 
 SType :: {
-  SType 
+  (Maybe (Int, Int), SType (Maybe (Int, Int)))
 }
 : 'int' {
-  Samoyeet.Abs.Int 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Int (Just (tokenLineCol $1)))
 }
 | 'string' {
-  Samoyeet.Abs.Str 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Str (Just (tokenLineCol $1)))
 }
 | 'boolean' {
-  Samoyeet.Abs.Bool 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Bool (Just (tokenLineCol $1)))
 }
 | 'void' {
-  Samoyeet.Abs.Void 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Void (Just (tokenLineCol $1)))
 }
 | 'Fun' '<' SType '(' ListMaybeRefType ')' '>' {
-  Samoyeet.Abs.Fun $3 $5 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Fun (Just (tokenLineCol $1)) (snd $3)(snd $5)) 
 }
 
 MaybeRefType :: {
-  MaybeRefType 
+  (Maybe (Int, Int), MaybeRefType (Maybe (Int, Int)))
 }
 : SType {
-  Samoyeet.Abs.NoRef $1 
+  (fst $1, Samoyeet.Abs.NoRef (fst $1)(snd $1)) 
 }
 | SType '&' {
-  Samoyeet.Abs.JustRef $1 
+  (fst $1, Samoyeet.Abs.JustRef (fst $1)(snd $1)) 
 }
 
 ListMaybeRefType :: {
-  [MaybeRefType]
+  (Maybe (Int, Int), [MaybeRefType (Maybe (Int, Int))]) 
 }
 : {
-  [] 
+  (Nothing, [])
 }
 | MaybeRefType {
-  (:[]) $1 
+  (fst $1, (:[]) (snd $1)) 
 }
 | MaybeRefType ',' ListMaybeRefType {
-  (:) $1 $3 
+  (fst $1, (:) (snd $1)(snd $3)) 
 }
 
 ListSType :: {
-  [SType]
+  (Maybe (Int, Int), [SType (Maybe (Int, Int))]) 
 }
 : {
-  [] 
+  (Nothing, [])
 }
 | SType {
-  (:[]) $1 
+  (fst $1, (:[]) (snd $1)) 
 }
 | SType ',' ListSType {
-  (:) $1 $3 
+  (fst $1, (:) (snd $1)(snd $3)) 
 }
 
 Expr6 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Ident {
-  Samoyeet.Abs.EVar $1 
+  (fst $1, Samoyeet.Abs.EVar (fst $1)(snd $1)) 
 }
 | Integer {
-  Samoyeet.Abs.ELitInt $1 
+  (fst $1, Samoyeet.Abs.ELitInt (fst $1)(snd $1)) 
 }
 | 'true' {
-  Samoyeet.Abs.ELitTrue 
+  (Just (tokenLineCol $1), Samoyeet.Abs.ELitTrue (Just (tokenLineCol $1)))
 }
 | 'false' {
-  Samoyeet.Abs.ELitFalse 
+  (Just (tokenLineCol $1), Samoyeet.Abs.ELitFalse (Just (tokenLineCol $1)))
 }
 | Ident '(' ListExpr ')' {
-  Samoyeet.Abs.EApp $1 $3 
+  (fst $1, Samoyeet.Abs.EApp (fst $1)(snd $1)(snd $3)) 
 }
 | String {
-  Samoyeet.Abs.EString $1 
+  (fst $1, Samoyeet.Abs.EString (fst $1)(snd $1)) 
 }
 | '(' Expr ')' {
-  $2 
+  (Just (tokenLineCol $1), snd $2)
 }
 
 Expr5 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : '-' Expr6 {
-  Samoyeet.Abs.Neg $2 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Neg (Just (tokenLineCol $1)) (snd $2)) 
 }
 | '!' Expr6 {
-  Samoyeet.Abs.Not $2 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Not (Just (tokenLineCol $1)) (snd $2)) 
 }
 | Expr6 {
-  $1 
+  (fst $1, snd $1)
 }
 
 Expr4 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Expr4 MulOp Expr5 {
-  Samoyeet.Abs.EMul $1 $2 $3 
+  (fst $1, Samoyeet.Abs.EMul (fst $1)(snd $1)(snd $2)(snd $3)) 
 }
 | Expr5 {
-  $1 
+  (fst $1, snd $1)
 }
 
 Expr3 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Expr3 AddOp Expr4 {
-  Samoyeet.Abs.EAdd $1 $2 $3 
+  (fst $1, Samoyeet.Abs.EAdd (fst $1)(snd $1)(snd $2)(snd $3)) 
 }
 | Expr4 {
-  $1 
+  (fst $1, snd $1)
 }
 
 Expr2 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Expr2 RelOp Expr3 {
-  Samoyeet.Abs.ERel $1 $2 $3 
+  (fst $1, Samoyeet.Abs.ERel (fst $1)(snd $1)(snd $2)(snd $3)) 
 }
 | Expr3 {
-  $1 
+  (fst $1, snd $1)
 }
 
 Expr1 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Expr2 'and' Expr1 {
-  Samoyeet.Abs.EAnd $1 $3 
+  (fst $1, Samoyeet.Abs.EAnd (fst $1)(snd $1)(snd $3)) 
 }
 | Expr2 {
-  $1 
+  (fst $1, snd $1)
 }
 
 Expr :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Expr1 'or' Expr {
-  Samoyeet.Abs.EOr $1 $3 
+  (fst $1, Samoyeet.Abs.EOr (fst $1)(snd $1)(snd $3)) 
 }
 | '[]' '(' ListArg ')' ':' SType Block {
-  Samoyeet.Abs.ELambda $3 $6 $7 
+  (Just (tokenLineCol $1), Samoyeet.Abs.ELambda (Just (tokenLineCol $1)) (snd $3)(snd $6)(snd $7)) 
 }
 | Expr1 {
-  $1 
+  (fst $1, snd $1)
 }
 
 ListExpr :: {
-  [Expr]
+  (Maybe (Int, Int), [Expr (Maybe (Int, Int))]) 
 }
 : {
-  [] 
+  (Nothing, [])
 }
 | Expr {
-  (:[]) $1 
+  (fst $1, (:[]) (snd $1)) 
 }
 | Expr ',' ListExpr {
-  (:) $1 $3 
+  (fst $1, (:) (snd $1)(snd $3)) 
 }
 
 AddOp :: {
-  AddOp 
+  (Maybe (Int, Int), AddOp (Maybe (Int, Int)))
 }
 : '+' {
-  Samoyeet.Abs.Plus 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Plus (Just (tokenLineCol $1)))
 }
 | '-' {
-  Samoyeet.Abs.Minus 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Minus (Just (tokenLineCol $1)))
 }
 
 MulOp :: {
-  MulOp 
+  (Maybe (Int, Int), MulOp (Maybe (Int, Int)))
 }
 : '*' {
-  Samoyeet.Abs.Times 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Times (Just (tokenLineCol $1)))
 }
 | '/' {
-  Samoyeet.Abs.Div 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Div (Just (tokenLineCol $1)))
 }
 | '%' {
-  Samoyeet.Abs.Mod 
+  (Just (tokenLineCol $1), Samoyeet.Abs.Mod (Just (tokenLineCol $1)))
 }
 
 RelOp :: {
-  RelOp 
+  (Maybe (Int, Int), RelOp (Maybe (Int, Int)))
 }
 : '<' {
-  Samoyeet.Abs.LTH 
+  (Just (tokenLineCol $1), Samoyeet.Abs.LTH (Just (tokenLineCol $1)))
 }
 | '<=' {
-  Samoyeet.Abs.LE 
+  (Just (tokenLineCol $1), Samoyeet.Abs.LE (Just (tokenLineCol $1)))
 }
 | '>' {
-  Samoyeet.Abs.GTH 
+  (Just (tokenLineCol $1), Samoyeet.Abs.GTH (Just (tokenLineCol $1)))
 }
 | '>=' {
-  Samoyeet.Abs.GE 
+  (Just (tokenLineCol $1), Samoyeet.Abs.GE (Just (tokenLineCol $1)))
 }
 | '==' {
-  Samoyeet.Abs.EQU 
+  (Just (tokenLineCol $1), Samoyeet.Abs.EQU (Just (tokenLineCol $1)))
 }
 | '!=' {
-  Samoyeet.Abs.NE 
+  (Just (tokenLineCol $1), Samoyeet.Abs.NE (Just (tokenLineCol $1)))
 }
 
 {
@@ -422,6 +422,6 @@ happyError ts =
 
 myLexer = tokens
 
-
+pProgram = (>>= return . snd) . pProgram_internal
 }
 

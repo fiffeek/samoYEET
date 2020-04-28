@@ -17,7 +17,7 @@ import           System.Exit
 import           Common.Utils
 import           Samoyeet.Print
 
-execInterpretMonad :: [Stmt] -> IO ()
+execInterpretMonad :: [IStmt] -> IO ()
 execInterpretMonad =
   runInterpretMonad initialEnvironment initialState . execStatementsM
 

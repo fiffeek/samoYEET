@@ -14,12 +14,15 @@ type InterpretMonad a
   = ReaderT Env (CMS.StateT Store (ExceptT RuntimeError IO)) a
 
 
-putStmt :: Stmt -> InterpretMonad a -> InterpretMonad a
+putStmt :: IStmt -> InterpretMonad a -> InterpretMonad a
 putStmt stmt_ cont = local (\e -> e { context = stmt_ }) cont
 
 initialEnvironment :: Env
-initialEnvironment =
-  Env { vEnv = M.empty, pEnv = M.empty, vtype = VNone, context = Empty }
+initialEnvironment = Env { vEnv    = M.empty
+                         , pEnv    = M.empty
+                         , vtype   = VNone
+                         , context = (Empty Nothing)
+                         }
 
 initialState :: Store
 initialState = Store { storage = M.empty, freeAddresses = [1 ..] }
@@ -69,7 +72,7 @@ changeRetType v env = env { vEnv = vEnv env, pEnv = pEnv env, vtype = v }
 flushVariables :: Env -> Env -> Env
 flushVariables env1 env2 = changeRetType (vtype env2) env1
 
-putFunInEnv :: SType -> Ident -> [Arg] -> Block -> Env -> Env
+putFunInEnv :: ISType -> Ident -> [IArg] -> IBlock -> Env -> Env
 putFunInEnv t n args b env = env { vEnv = M.delete n (vEnv env)
                                  , pEnv = M.insert n makeFunc (pEnv env)
                                  }
@@ -86,7 +89,7 @@ putFunInEnv t n args b env = env { vEnv = M.delete n (vEnv env)
                   }
     }
 
-declareFunWithEnv :: SType -> Ident -> [Arg] -> Block -> Env -> Env -> Env
+declareFunWithEnv :: ISType -> Ident -> [IArg] -> IBlock -> Env -> Env -> Env
 declareFunWithEnv t n args b fenv env = env
   { vEnv = M.delete n (vEnv env)
   , pEnv = M.insert n makeFunc (pEnv env)
