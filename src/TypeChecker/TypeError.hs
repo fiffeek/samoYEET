@@ -7,6 +7,7 @@ data TypeMismatchContext = CannotCompare
   | LHSRHS
   | FunArgType
   | BinaryInt
+  | BinaryBool
   | OpInt
   | OpBool
   | ComparableTypes

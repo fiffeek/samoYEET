@@ -96,7 +96,7 @@ typeCheckExpr expr = putStmt (SExp Nothing expr) $ go expr
   go (ELitFalse ctx         ) = return $ Bool ctx
   go (EString ctx _         ) = return $ Str ctx
   go (Neg ctx v) = typeCheckExpr v >>= ensureType BinaryInt (Int ctx)
-  go (Not ctx v) = typeCheckExpr v >>= ensureType BinaryInt (Bool ctx)
+  go (Not ctx v) = typeCheckExpr v >>= ensureType BinaryBool (Bool ctx)
   go (EMul ctx left op right) = ensureExprTypes OpInt left right [Int ctx]
   go (EAnd ctx left right   ) = ensureExprTypes OpBool left right [Bool ctx]
   go (EOr  ctx left right   ) = ensureExprTypes OpBool left right [Bool ctx]
