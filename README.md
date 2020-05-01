@@ -2,7 +2,7 @@
 
 ## Overview
 
-Samll interpreter written in `haskell` for one of the university courses. The language presented here is based mostly on the `Latte language` available [here](https://www.mimuw.edu.pl/~ben/Zajecia/Mrj2019/Latte/). 
+Small interpreter written in `haskell` for one of the university courses. The language presented here is based mostly on the `Latte language` available [here](https://www.mimuw.edu.pl/~ben/Zajecia/Mrj2019/Latte/). 
 
 The interpreter's name orinates from a beautiful breed of dogs (Samoyed) and a [yeet](https://www.dictionary.com/e/slang/yeet/) keyword which is used instead of a standard print function (which consequently, preserves 1 character per one print invocation, pretty neat, huh?).
 
