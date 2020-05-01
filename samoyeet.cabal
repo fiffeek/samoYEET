@@ -30,6 +30,7 @@ library
       Common.CommandLineHelpers
       Common.Logging
       Common.Utils
+      Common.Types
       Interpreter.Environment
       Interpreter.Interpreter
       Interpreter.Runner

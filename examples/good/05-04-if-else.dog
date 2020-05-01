@@ -1,0 +1,9 @@
+boolean fun() {
+    return true;
+}
+
+if (fun()) {
+    yeet "W8M8";
+} else {
+    yeet "H8M4";
+}

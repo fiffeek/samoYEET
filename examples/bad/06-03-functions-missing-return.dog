@@ -1,0 +1,9 @@
+int fun() {
+    if (true) {
+        return 5;
+    }
+
+    // here return is missing,
+    // true in the condition above 
+    // can be anything
+}

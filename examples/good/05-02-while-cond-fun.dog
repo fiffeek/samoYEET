@@ -1,0 +1,15 @@
+boolean cond(int i) {
+    if (i % 2 == 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+int x = 0;
+while (cond(x)) {
+    yeet (x); // 0
+    x++;
+}
+
+yeet(x); // 1

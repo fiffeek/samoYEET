@@ -1,0 +1,8 @@
+int x = 5;
+yeet x;
+{
+    int x;
+    x = 10;
+    yeet x;
+}
+yeet x;

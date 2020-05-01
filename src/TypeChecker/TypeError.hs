@@ -23,9 +23,9 @@ data TypeError = NotAFunction
   | FunctionBodyDoesNotReturnValue Ident
   | OutsideOfLoop TCStmt
   | WrongNumberOfArguments Ident
-  | FunctionNotReferenceable
+  | FunctionNotReferenceable Ident TCStmt
   | ConflictingDeclarations Ident TCStmt
   | Redeclaration Ident TCStmt
   | BadReference TCStmt
-  | ReturnMissing Ident
+  | ReturnMissing Ident TCStmt
   | UnknownError deriving Show

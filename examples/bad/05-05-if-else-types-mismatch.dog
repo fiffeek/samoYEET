@@ -1,0 +1,9 @@
+int cond() {
+    return 1337;
+}
+
+if (cond()) {
+    yeet "oops";
+} else {
+    yeet "oops";
+}

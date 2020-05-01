@@ -1,0 +1,38 @@
+string fun1() {
+    return "str";
+}
+
+boolean fun2() {
+    return true;
+}
+
+int fun3() {
+    return 5;
+}
+
+int fun4(int x, string y, boolean z) {
+    yeet y;
+    yeet z;
+    return x;
+}
+
+int fun5(Fun<int(int, string, boolean)> f) {
+    return f(5, "str", true);
+}
+
+yeet fun1(); // str
+yeet fun2(); // True
+yeet fun3(); // 5
+yeet fun4(4, "str4", true); // str4, True, 4
+yeet fun5(fun4); // str, True, 5
+
+
+void changeMe(string& s) {
+    s = "doggo";
+    return;
+}
+
+string s = "samoyedo";
+yeet s; // samoyedo
+changeMe(s);
+yeet s; // doggo

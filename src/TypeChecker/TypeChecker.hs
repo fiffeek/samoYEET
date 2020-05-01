@@ -13,6 +13,7 @@ import           TypeChecker.Converter
 import           TypeChecker.Environment
 import           TypeChecker.TypeError
 import           TypeChecker.Types
+import           Common.Types
 
 ensureType
   :: TypeMismatchContext -> TCSType -> TCSType -> TypeCheckerMonad TCSType
@@ -86,7 +87,7 @@ checkFunction (Fun _ retType args) exprs name = do
 checkFunction _ _ _ = throwError NotAFunction
 
 typeCheckExpr :: TCExpr -> TypeCheckerMonad TCSType
-typeCheckExpr expr = putStmt (SExp Nothing expr) $ go expr
+typeCheckExpr expr = putStmt (SExp (getExprContext expr) expr) $ go expr
  where
   go (ELambda ctx args ret block) = do
     typeCheckStmtM (SFnDef ctx ret (Ident "[]") args block)
@@ -185,19 +186,18 @@ typeCheckStmtM stmt = putStmt stmt $ go stmt
     env <- putType name t curEnv
     local (const env) $ typeCheckStmtM (Decl ctx t xs)
 
-  go (SFnDef ctx retType name args block) = do
+  go funDef@(SFnDef ctx retType name args block) = do
     entireEnv <- ask
-    sequence_ $ fmap ensureArgumentType args
+    sequence_ $ fmap (ensureArgumentType name funDef) args
     let maybeRefArgType = map argToRefType args
     envAfterDecl <- local (putBlockOnStack)
       $ typeCheckStmtsM (map argToNoInit args)
-    putFun <- putType name (Fun ctx retType maybeRefArgType) envAfterDecl
+    let removeBlock = removeBlockFromStack envAfterDecl
+    putFun <- putType name (Fun ctx retType maybeRefArgType) removeBlock
     let putRetType = putFunRetType retType putFun
-    let blockOut   = removeBlockFromStack putRetType
-    envBody  <- local (const blockOut) $ typeCheckStmtM (BStmt ctx block)
+    envBody  <- local (const putRetType) $ typeCheckStmtM (BStmt ctx block)
     bodyType <- getOrError (status envBody)
                            (FunctionBodyDoesNotReturnValue name)
-    ensureType (ReturnType retType) retType bodyType
     putType name (Fun ctx retType maybeRefArgType) entireEnv
 
   go (BStmt _ (Block _ stmts)) = do
@@ -208,15 +208,15 @@ typeCheckStmtM stmt = putStmt stmt $ go stmt
   go (While ctx expr stmt) = do
     env   <- ask
     exprT <- typeCheckExpr expr
-    ensureType ConditionBool exprT (Bool ctx)
+    ensureType ConditionBool (Bool ctx) exprT
     blockEnv <- local (putLoopOnStack) $ typeCheckStmtM stmt
     return $ alternateStatus (status blockEnv) env
 
-  ensureArgumentType :: TCArg -> TypeCheckerMonad ()
-  ensureArgumentType (Arg _ (Fun _ _ _) _) = pure ()
-  ensureArgumentType (RefArg _ (Fun _ _ _) _) =
-    throwError FunctionNotReferenceable
-  ensureArgumentType t =
+  ensureArgumentType :: Ident -> TCStmt -> TCArg -> TypeCheckerMonad ()
+  ensureArgumentType _ _ (Arg _ (Fun _ _ _) _) = pure ()
+  ensureArgumentType name ctx (RefArg _ (Fun _ _ _) _) =
+    throwError $ FunctionNotReferenceable name ctx
+  ensureArgumentType _ _ t =
     ensureAnyType FunArgType (argToSType t) varPossibleTypes >> pure ()
 
 

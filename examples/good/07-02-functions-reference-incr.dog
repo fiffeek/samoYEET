@@ -1,0 +1,9 @@
+void fun(int& a) {
+    a++;
+    return;
+}
+
+int a = 5;
+yeet(a); // 5
+fun(a);
+yeet(a); // 6

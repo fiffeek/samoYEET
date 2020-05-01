@@ -1,0 +1,9 @@
+int g() {
+    int g() {
+        return 5;
+    }
+
+    return g();
+}
+
+yeet g();

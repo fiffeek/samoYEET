@@ -1,8 +1,0 @@
-int x = 15;
-
-if (true) {
-
-    x++;
-}
-
-yeet(x);

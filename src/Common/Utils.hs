@@ -19,3 +19,5 @@ showTree v tree = do
 
 showTextSeq :: [String] -> String
 showTextSeq = concat . intersperse " "
+
+stripEndLine = filter (/= '\n')

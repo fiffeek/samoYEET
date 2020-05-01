@@ -1,0 +1,9 @@
+int x;
+
+int fun(int x) {
+    return x;
+}
+
+x = 5;
+yeet x;
+yeet fun(x + 2);

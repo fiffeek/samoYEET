@@ -1,0 +1,21 @@
+int x = 5;
+x = 10;
+yeet(x);
+x = 15;
+yeet(x);
+x--;
+yeet(x);
+x++;
+yeet(x);
+
+
+string y;
+y = "abcd";
+yeet(y);
+y = "ab" + "de";
+yeet(y);
+
+boolean z = true;
+yeet(z);
+z = z and false;
+yeet(z);

@@ -1,0 +1,5 @@
+
+yeet 5;
+return 5;
+yeet 5;
+return (2 / 0);

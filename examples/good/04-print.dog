@@ -1,0 +1,6 @@
+yeet(10);
+yeet(true);
+yeet("str");
+
+int var = 10;
+yeet(var);

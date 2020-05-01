@@ -1,0 +1,26 @@
+int fun(int y) {
+  return y;
+}
+
+void main () {
+  yeet fun(10); // 10
+
+  void g() {
+    yeet "inside main";
+    return;
+  }
+
+  int fun(int y) {
+      void g() {
+        yeet "inside fun";
+        return;
+      }
+      g();
+      return y + 5;
+  }
+
+  yeet fun(10); // 15
+  return;
+}
+
+main();

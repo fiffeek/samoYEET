@@ -1,0 +1,20 @@
+yeet(2 == 5);
+yeet(2 > 5);
+yeet("str" == "str2");
+yeet(true > true);
+yeet(true > false);
+yeet(true == true);
+yeet(true and false);
+yeet(false and false);
+yeet(true < false);
+yeet(false or false);
+yeet(false or true);
+
+yeet(-5);
+yeet(1 + 1);
+yeet(1 - 1);
+yeet(4 / 2);
+yeet(21 * 37);
+yeet(!true);
+yeet(!false);
+yeet(5 % 2);

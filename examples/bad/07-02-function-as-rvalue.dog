@@ -1,0 +1,7 @@
+int fun(int x) {
+    return x;
+}
+
+int fun(Fun<int(int)>& ff) {
+    return f(5);
+}

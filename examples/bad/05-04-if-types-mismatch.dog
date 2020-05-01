@@ -1,0 +1,7 @@
+string cond() {
+    return "vikings ftw";
+}
+
+if (cond()) {
+    return "oops";
+}

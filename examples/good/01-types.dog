@@ -1,0 +1,7 @@
+int x = 5;
+string y = "5";
+boolean z = true;
+
+yeet(x);
+yeet(y);
+yeet(z);

@@ -16,6 +16,7 @@ import           System.IO
 import           System.Exit
 import           Common.Utils
 import           Samoyeet.Print
+import           Common.Types
 
 execInterpretMonad :: [IStmt] -> IO ()
 execInterpretMonad =
@@ -26,11 +27,27 @@ errorsHandler error = do
   hPutStrLn stderr . addPrefix . go $ error
   exitFailure
  where
-  addPrefix = (++) "Error: "
-  go DivisionByZero   = "Division by zero"
-  go ValueNotReturned = "Function did not return a value"
+  addPrefix = (++) "Runtime error: "
+  addContext stmt =
+    let maybeCtx = getContext stmt
+    in  case maybeCtx of
+          (Just (line, column)) -> concat
+            [ "\n"
+            , "(line "
+            , show line
+            , ", column "
+            , show column
+            , ") "
+            , " in\n```"
+            , stripEndLine . printTree $ stmt
+            , "```\n"
+            ]
+          (Nothing) ->
+            concat ["\n", " in\n```", stripEndLine . printTree $ stmt, "```\n"]
+  go (DivisionByZero ctx) = concat ["\ndivision by zero", addContext ctx]
+  go ValueNotReturned     = "Function did not return a value"
   go (VariableNotInitialized name ctx) =
-    showTextSeq ["Variable", show name, "not initialized in", printTree ctx]
+    showTextSeq ["Variable", show name, "not initialized in", addContext ctx]
   go _ = "Unknown error"
 
 runInterpretMonad :: Env -> Store -> InterpretMonad Env -> IO ()

@@ -22,6 +22,7 @@ import           TypeChecker.ReturnChecker
 import           Common.Utils
 import           TypeChecker.Types
 import           Data.List
+import           Common.Types
 
 execTypeCheckerMonad :: CommandLineArguments -> [TCStmt] -> IO () -> IO ()
 execTypeCheckerMonad cla stmts =
@@ -33,12 +34,11 @@ errorsHandler error = do
   hPutStrLn stderr . addPrefix . go $ error
   exitFailure
  where
-  addPrefix    = (++) "Type error: "
-  stripEndLine = filter (/= '\n')
+  addPrefix = (++) "Type error: "
   addContext mess stmt =
     let maybeCtx = getContext stmt
     in  case maybeCtx of
-          (Just (column, line)) -> concat
+          (Just (line, column)) -> concat
             [ "\n"
             , "(line "
             , show line
@@ -109,15 +109,15 @@ errorsHandler error = do
     actual
     expected
     context
-  go (TypeMismatch (Assignment tctype) _ expected context) =
+  go (TypeMismatch (Assignment _) actual expected context) =
     showMismatchGeneric "tried to assign different types"
-                        tctype
+                        actual
                         expected
                         context
-  go (TypeMismatch (DeclVaries tctype) _ expected context) =
+  go (TypeMismatch (DeclVaries _) actual expected context) =
     showMismatchGeneric
       "declaration type mismatch, declared type is different to the asignee"
-      tctype
+      actual
       expected
       context
   go (TypeMismatch ConditionBool actual expected context) = showMismatchGeneric
@@ -133,13 +133,22 @@ errorsHandler error = do
     [addContext "bad reference" ref, "referenced lvalue instead of rvalue"]
   go (FunctionBodyDoesNotReturnValue name) =
     showTextSeq ["Missing return in", show name, "function body"]
-  go (OutsideOfLoop stmt      ) = addContext "Statement outside of a loop" stmt
-  go (FunctionNotReferenceable) = "Functions are not referenceable"
+  go (OutsideOfLoop stmt) = addContext "Statement outside of a loop" stmt
+  go (FunctionNotReferenceable name ctx) = addContext
+    (concat
+      [ "\nfunctions are not referenceable in "
+      , show name
+      , " function declaration\n"
+      ]
+    )
+    ctx
   go (ConflictingDeclarations idn stmt) =
     addContext ("Redeclaration, conflicting types for " ++ (show idn)) stmt
-  go (Redeclaration idn stmt) = go (ConflictingDeclarations idn stmt)
-  go (ReturnMissing name    ) = go (FunctionBodyDoesNotReturnValue name)
-  go _                        = "Unknown error"
+  go (Redeclaration idn  stmt) = go (ConflictingDeclarations idn stmt)
+  go (ReturnMissing name ctx ) = addContext
+    (concat ["\nmissing return in ", show name, " function body\n"])
+    ctx
+  go _ = "Unknown error"
 
 runTypeCheckerMonad :: Env -> TypeCheckerMonad a -> IO () -> IO ()
 runTypeCheckerMonad env m cont = do

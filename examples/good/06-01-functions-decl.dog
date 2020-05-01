@@ -1,0 +1,15 @@
+int funInt(int x) {
+    return x;
+}
+
+string funStr(string x) {
+    return x;
+}
+
+boolean funBool(boolean x) {
+    return x;
+}
+
+yeet funInt(2137);
+yeet funStr("2137");
+yeet funBool(true);

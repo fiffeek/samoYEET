@@ -1,0 +1,4 @@
+if (true) {
+    yeet "yay";
+    return 10;
+}

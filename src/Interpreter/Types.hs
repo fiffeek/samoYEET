@@ -8,11 +8,13 @@ import           Control.Monad
 import           Interpreter.RuntimeError
 import           Control.Monad.Except
 import           Control.Monad.Reader
+import           Common.Types
 
-type IArg = Arg (Maybe (Int, Int))
-type IBlock = Block (Maybe (Int, Int))
-type ISType = SType (Maybe (Int, Int))
-type IExpr = Expr (Maybe (Int, Int))
+type IContext = GenericContext
+type IArg = Arg IContext
+type IBlock = Block IContext
+type ISType = SType IContext
+type IExpr = Expr IContext
 
 type MemAdr = Int
 data Store = Store {
@@ -100,18 +102,30 @@ myAdd op left right = do
   matcher (Plus  _) = myPlus
   matcher (Minus _) = myMinus
 
-myMul :: (MonadError RuntimeError m) => MulOp a -> m VType -> m VType -> m VType
+myMul
+  :: (MonadError RuntimeError m, Monad m, MonadReader Env m)
+  => MulOp a
+  -> m VType
+  -> m VType
+  -> m VType
 myMul op left right = do
   l <- left
   r <- right
   (matcher op) l r
  where
-  myTimes (VInt left) (VInt right) = pure . VInt $ left * right
+  myTimes (VInt left) (VInt right) = return . VInt $ left * right
 
-  myDiv (VInt left) (VInt 0    ) = throwError DivisionByZero
-  myDiv (VInt left) (VInt right) = pure . VInt $ left `div` right
+  myDiv
+    :: (MonadError RuntimeError m, Monad m, MonadReader Env m)
+    => VType
+    -> VType
+    -> m VType
+  myDiv (VInt left) (VInt 0) = do
+    ctx <- asks context
+    throwError $ DivisionByZero ctx
+  myDiv (VInt left) (VInt right) = return . VInt $ left `div` right
 
-  myMod (VInt left) (VInt right) = pure . VInt $ left `mod` right
+  myMod (VInt left) (VInt right) = return . VInt $ left `mod` right
 
   matcher (Times _) = myTimes
   matcher (Div   _) = myDiv

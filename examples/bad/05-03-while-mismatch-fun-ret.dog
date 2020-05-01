@@ -1,0 +1,5 @@
+int cond(int i) {
+    return i;
+}
+
+while (cond(10)) {};

@@ -1,0 +1,9 @@
+int fun() {
+    int fun(int y) {
+        return 5;
+    }
+
+    void fun() {
+        return;
+    }
+}
