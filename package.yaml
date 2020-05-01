@@ -1,10 +1,10 @@
 name:                samoyeet
 version:             0.1.0.0
-github:              "githubuser/samoyeet"
+github:              "githubuser/fiffeek"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2020 Author name here"
+author:              "Filip Mikina"
+maintainer:          "filipmikina@gmail.com"
+copyright:           "2020 Filip Mikina"
 
 extra-source-files:
 - README.md
@@ -33,17 +33,6 @@ executables:
   samoyeet-exe:
     main:                Main.hs
     source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - samoyeet
-
-tests:
-  samoyeet-test:
-    main:                Spec.hs
-    source-dirs:         test
     ghc-options:
     - -threaded
     - -rtsopts

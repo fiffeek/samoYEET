@@ -4,16 +4,16 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0cef718e8f5100bbf64a870fa21552603f5b2eeda61cec9b85206f24db86acc1
+-- hash: b064d87c043b5550a2ee43e40d5679f1c92ccc6dd40cdce66655daf6764c8026
 
 name:           samoyeet
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/samoyeet#readme>
-homepage:       https://github.com/githubuser/samoyeet#readme
-bug-reports:    https://github.com/githubuser/samoyeet/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2020 Author name here
+homepage:       https://github.com/githubuser/fiffeek#readme
+bug-reports:    https://github.com/githubuser/fiffeek/issues
+author:         Filip Mikina
+maintainer:     filipmikina@gmail.com
+copyright:      2020 Filip Mikina
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -23,14 +23,14 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/samoyeet
+  location: https://github.com/githubuser/fiffeek
 
 library
   exposed-modules:
       Common.CommandLineHelpers
       Common.Logging
-      Common.Utils
       Common.Types
+      Common.Utils
       Interpreter.Environment
       Interpreter.Interpreter
       Interpreter.Runner
@@ -44,10 +44,10 @@ library
       Samoyeet.Skel
       TypeChecker.Converter
       TypeChecker.Environment
+      TypeChecker.ReturnChecker
       TypeChecker.Runner
       TypeChecker.TypeChecker
       TypeChecker.TypeError
-      TypeChecker.ReturnChecker
       TypeChecker.Types
   other-modules:
       Paths_samoyeet
@@ -67,23 +67,6 @@ executable samoyeet-exe
       Paths_samoyeet
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      array
-    , base >=4.7 && <5
-    , containers
-    , mtl
-    , samoyeet
-    , transformers
-  default-language: Haskell2010
-
-test-suite samoyeet-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_samoyeet
-  hs-source-dirs:
-      test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
