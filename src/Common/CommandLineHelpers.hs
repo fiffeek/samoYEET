@@ -37,7 +37,7 @@ instance Explain CommandLineArgument where
     go t@(TypeCheck _) =
       intercalate (getIndent . show $ t) [show t, "Disable type checking."]
     go f@(Files _) =
-      intercalate (getIndent "[file]") ["[file]", "Parse content of files."]
+      intercalate (getIndent "file") ["file", "Parse content of a file."]
 
 data CommandLineArguments = CLA {debug :: CommandLineArgument
   , warnings :: CommandLineArgument

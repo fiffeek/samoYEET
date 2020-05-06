@@ -6,6 +6,18 @@ Small interpreter written in `haskell` for one of the university courses. The la
 
 The interpreter's name orinates from a beautiful breed of dogs (Samoyed) and a [yeet](https://www.dictionary.com/e/slang/yeet/) keyword which is used instead of a standard print function (which consequently, preserves 1 character per one print invocation, pretty neat, huh?).
 
+## Build
+
+To build the project one can use stack `stack build --copy-bins` which generates `samoyeet-exe` file and adds it to stack local path. To locally run the file one can execute the following command `stack run -- flags_here`. I will explain the flags next. To build the project locally run `stack build` then you can find the executable file under `stack path --local-install-root` `/bin/`.
+
+## Flags
+
+Try `--help` for verbose explanation. Generally one provide the external file that one wants to interpret like this
+- `samoyeet-exe examples/good/00-05-string-concat.dog` or
+- `stack run -- examples/good/00-05-string-concat.dog` (a file's extenstion does not matter)
+
+I have also added flags for disabling type checking so that you can try my language with `dynamic typing mode`.
+
 ## Motivation
 
 Em, that was kinda obligatory, however, aside from that I would recommend writing an interpreter to people who want to get into functional programming. It can introduce the concept of functional programming and monads pretty well, this interpreter has a lot of bloatware, though, so I recommend trying a smaller one with just basics.

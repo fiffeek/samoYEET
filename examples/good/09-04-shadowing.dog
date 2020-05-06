@@ -1,0 +1,36 @@
+int x = 1;
+yeet x;
+
+{
+    int x = 2;
+    yeet x;
+
+    void f() {
+        yeet x;
+        int x = 3;
+        void g(int x) {
+            yeet x;
+            return;
+        }
+
+        {
+            int x = 4;
+            yeet x;
+
+            void z() {
+                int x = 5;
+                yeet x;
+                g(x);
+                return;
+            }
+
+            z();
+            g(x);
+        }
+
+        yeet x;
+        return;
+    }
+
+    f();
+}
